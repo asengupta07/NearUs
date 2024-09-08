@@ -1,28 +1,38 @@
-"use client";
-
-import { useState, useEffect, useRef } from "react";
+import { memo, useState, useEffect, useRef } from "react";
 import { NavigationControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { OlaMaps } from "../OlaMapsWebSDK/olamaps-js-sdk.es";
-import { memo } from "react";
 
-const MapComponent = memo(({ height = "100%", width = "100%", theme = "dark", locations = [] }) => {
-    const mapContainerRef = useRef(null); // Ref for the map container
-    const mapInstance = useRef(null); // Ref to store the map instance
+// Define the types for the props
+interface Location {
+    name: string;
+    longitude: number;
+    latitude: number;
+}
+
+interface MapComponentProps {
+    height?: string;
+    width?: string;
+    theme?: string;
+    locations: Location[];
+}
+
+const MapComponent: React.FC<MapComponentProps> = memo(({ height = "100%", width = "100%", theme = "dark", locations = [] }) => {
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+    const mapInstance = useRef<any>(null);
 
     useEffect(() => {
-        if (!mapContainerRef.current || locations.length === 0) return; // Ensure the map container is available and there are locations
+        if (!mapContainerRef.current || locations.length === 0) return;
 
         const olaMaps = new OlaMaps({
             apiKey: process.env.NEXT_PUBLIC_API_KEY
         });
 
-        // Initialize map only once
         if (!mapInstance.current) {
             mapInstance.current = olaMaps.init({
-                container: mapContainerRef.current, // Use ref for the container
+                container: mapContainerRef.current!,
                 style: `https://api.olamaps.io/tiles/vector/v1/styles/default-${theme}-standard/style.json`,
-                transformRequest: (url, resourceType) => {
+                transformRequest: (url: any, resourceType: any) => {
                     if (url.includes("?")) {
                         url += `&api_key=${process.env.NEXT_PUBLIC_API_KEY}`;
                     } else {
@@ -32,28 +42,24 @@ const MapComponent = memo(({ height = "100%", width = "100%", theme = "dark", lo
                 },
             });
 
-            // Add navigation controls to the map
             const nav = new NavigationControl({
                 visualizePitch: true,
             });
             mapInstance.current.addControl(nav, "top-left");
         }
 
-        // Calculate bounds based on provided locations
         const latitudes = locations.map(coord => coord.latitude);
         const longitudes = locations.map(coord => coord.longitude);
         const bounds = [
-            [Math.min(...longitudes), Math.min(...latitudes)], // Southwest corner
-            [Math.max(...longitudes), Math.max(...latitudes)]  // Northeast corner
+            [Math.min(...longitudes), Math.min(...latitudes)],
+            [Math.max(...longitudes), Math.max(...latitudes)]
         ];
 
-        // Fit the map to bounds
         mapInstance.current.fitBounds(bounds, { padding: 50 });
 
-        // Add markers for each location
         locations.forEach(({ name, longitude, latitude }) => {
             const popup = olaMaps.addPopup({ offset: [0, -30], anchor: 'bottom' })
-                .setHTML(`<div style="color: black;">${name}</div>`); // Inline styles for better control
+                .setHTML(`<div style="color: black;">${name}</div>`);
 
             olaMaps
                 .addMarker({ offset: [0, 0], anchor: "bottom" })
@@ -64,7 +70,7 @@ const MapComponent = memo(({ height = "100%", width = "100%", theme = "dark", lo
 
         return () => {
             if (mapInstance.current) {
-                mapInstance.current.remove(); // Cleanup map on component unmount
+                mapInstance.current.remove();
                 mapInstance.current = null;
             }
         };
@@ -72,11 +78,11 @@ const MapComponent = memo(({ height = "100%", width = "100%", theme = "dark", lo
 
     return (
         <div
-            ref={mapContainerRef} // Attach ref to the div
+            ref={mapContainerRef}
             style={{ width, height, overflow: "hidden" }}
             id="central-map"
         />
     );
 });
-
+MapComponent.displayName = "MapComponent";  
 export default MapComponent;
