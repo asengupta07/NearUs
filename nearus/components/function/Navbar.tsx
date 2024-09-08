@@ -27,9 +27,11 @@ export default function Navbar() {
                     ))}
                 </div>
                 <div className="flex items-center space-x-4">
+                    <Link href="/auth">
                     <Button className="text-white bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 hover:from-purple-600 hover:via-violet-600 hover:to-pink-600">
                         Get Started
                     </Button>
+                    </Link>
                 </div>
             </div>
         </nav>
