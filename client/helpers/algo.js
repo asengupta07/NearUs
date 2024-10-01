@@ -91,6 +91,6 @@ try {
   console.error("Error:", error.message);
 }
 
-// export {
-//   findCentroid,
-// };
+export {
+  findCentroid,
+};
