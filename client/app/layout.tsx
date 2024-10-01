@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
+import { AuthProvider } from "@/contexts/authContext";
 
 const inter = Inter({ subsets: ["latin"] });
 const darkMode = true;
@@ -19,7 +20,9 @@ export default function RootLayout({
     <html lang="en" className={`${darkMode ? "dark" : ""}`}>
       <body className={inter.className}>
         <ThemeProvider attribute="class">
+          <AuthProvider>
           {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

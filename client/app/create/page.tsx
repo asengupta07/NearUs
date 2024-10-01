@@ -1,29 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { MapPin, Plus, Calendar, Clock } from 'lucide-react'
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BackgroundBeams } from '@/components/ui/background-beams'
 import { cn } from "@/lib/utils"
 import Navbar from '@/components/function/Nav'
 import MapComponent from '@/components/function/map'
+import { useAuth } from '@/contexts/authContext'
 
-const friends = [
-    { id: 1, name: 'Alice Johnson' },
-    { id: 2, name: 'Bob Smith' },
-    { id: 3, name: 'Charlie Brown' },
-    { id: 4, name: 'Diana Prince' },
-]
+interface Friend {
+    id: string;
+    username: string;
+    email: string;
+    location: {
+      latitude: number;
+      longitude: number;
+    };
+    avatarUrl: string;
+  }
 
-const locationPreferences = ['Cafes', 'Parks', 'Restaurants', 'Bars', 'Museums']
+interface Location {
+    name: string;
+    longitude: number;
+    latitude: number;
+}
 
 const scrollbarStyles = `
 .custom-scrollbar {
@@ -51,26 +59,68 @@ const scrollbarStyles = `
 `;
 
 export default function CreateNewPlan() {
-    const [selectedFriends, setSelectedFriends] = useState<number[]>([])
-    const [flexibility, setFlexibility] = useState(50)
+    const [friends, setFriends] = useState<Friend[]>([])
+    const [selectedFriends, setSelectedFriends] = useState<string[]>([])
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
     const [selectedTime, setSelectedTime] = useState('12:00')
+    const [planName, setPlanName] = useState('')
+    const [selectedLocationPreference, setSelectedLocationPreference] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+    const { email } = useAuth()
+    const [displayLocations, setDisplayLocations] = useState<Location[]>([])
+    const locationPreferences = ['Cafes', 'Parks', 'Restaurants', 'Malls', 'Cinemas', 'Bars']
 
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const friendsResponse = await fetch('/api/friends', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                    }),
+                });
+                if (!friendsResponse.ok) {
+                    throw new Error('Failed to fetch friends')
+                }
+                const friendsData = await friendsResponse.json();
+                console.log('friendsData: ', friendsData)
 
-    const locations = [
-        { name: "Rajesh", longitude: 88.3639, latitude: 22.5726 },
-        { name: "Priya", longitude: 88.3742, latitude: 22.5855 },
-        { name: "Vikram", longitude: 88.3476, latitude: 22.5637 },
-        { name: "Anita", longitude: 88.3961, latitude: 22.5763 },
-        { name: "Rohit", longitude: 88.4182, latitude: 22.5924 },
-        { name: "Suman", longitude: 88.3378, latitude: 22.5322 },
-        { name: "Deepika", longitude: 88.3940, latitude: 22.5512 },
-        { name: "Ajay", longitude: 88.3293, latitude: 22.6010 },
-        { name: "Kavita", longitude: 88.3779, latitude: 22.5489 },
-        { name: "Rina", longitude: 88.4085, latitude: 22.5741 },
-    ];
+                const locData = friendsData.friends.map((friend: Friend) => ({
+                    name: friend.username,
+                    longitude: friend.location.longitude,
+                    latitude: friend.location.latitude,
+                }));
+                const myLocation = {
+                    name: 'You',
+                    longitude: friendsData.me.location.longitude,
+                    latitude: friendsData.me.location.latitude
+                }
+                locData.push(myLocation)
 
-    const handleFriendSelection = (friendId: number) => {
+                console.log('locData: ', locData)
+
+                
+                setDisplayLocations(locData)
+                setFriends(friendsData.friends);
+                console.log('locdata2: ', displayLocations)
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+        if (email) {
+            fetchData();
+            console.log('data: ', displayLocations)
+        }
+    }, [email]);
+
+    useEffect(() => {
+        console.log('displayLocations: ', displayLocations)
+    }, [displayLocations])
+
+    const handleFriendSelection = (friendId: string) => {
         setSelectedFriends(prev =>
             prev.includes(friendId)
                 ? prev.filter(id => id !== friendId)
@@ -78,10 +128,40 @@ export default function CreateNewPlan() {
         )
     }
 
-    const handleCreatePlan = (e: React.FormEvent) => {
+    const handleCreatePlan = async (e: React.FormEvent) => {
         e.preventDefault()
-        // Here you would typically send the data to your backend
-        console.log('Creating plan with:', { selectedFriends, flexibility, selectedDate, selectedTime })
+        setIsLoading(true)
+        try {
+            const response = await fetch('/api/create-plan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    planName,
+                    selectedFriends,
+                    selectedDate: selectedDate?.toISOString().split('T')[0],
+                    selectedTime,
+                    selectedLocationPreference,
+                    creatorEmail: email,
+                }),
+            })
+            if (!response.ok) {
+                throw new Error('Failed to create plan')
+            }
+            const data = await response.json()
+            console.log('Plan created:', data)
+            // Reset form or navigate to a success page
+            setPlanName('')
+            setSelectedFriends([])
+            setSelectedDate(new Date())
+            setSelectedTime('12:00')
+            setSelectedLocationPreference('')
+        } catch (error) {
+            console.error('Error creating plan:', error)
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -89,7 +169,7 @@ export default function CreateNewPlan() {
             <style>{scrollbarStyles}</style>
             <Navbar notifications={[]} />
             <div className="custom-scrollbar relative min-h-[200vh] w-full bg-gray-950 text-white overflow-hidden">
-                <div className="absolute inset-0 overflow-y-auto">
+                <div className="absolute inset-0 max-w-4xl mx-auto w-full overflow-y-auto">
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -111,14 +191,19 @@ export default function CreateNewPlan() {
                                 <form onSubmit={handleCreatePlan} className="space-y-8">
                                     <div>
                                         <Label htmlFor="plan-name" className="text-white">Plan Name</Label>
-                                        <Input id="plan-name" placeholder="Enter plan name" className="mt-1 bg-gray-800 text-white border-gray-700" />
+                                        <Input
+                                            id="plan-name"
+                                            placeholder="Enter plan name"
+                                            className="mt-1 bg-gray-800 text-white border-gray-700"
+                                            value={planName}
+                                            onChange={(e) => setPlanName(e.target.value)}
+                                        />
                                     </div>
                                     <div>
-
                                         <h2 className="text-xl font-semibold mb-2 text-white">Location Map</h2>
                                         <div className='relative overflow-hidden rounded-lg shadow-lg'>
                                             <div className='z-50 h-64 w-full'>
-                                                <MapComponent locations={locations} />
+                                                <MapComponent locations={displayLocations} />
                                             </div>
                                         </div>
                                     </div>
@@ -139,10 +224,16 @@ export default function CreateNewPlan() {
                                                         onCheckedChange={() => handleFriendSelection(friend.id)}
                                                     />
                                                     <Label htmlFor={`friend-${friend.id}`} className="text-gray-300">
-                                                        <Avatar className="inline-block mr-2">
-                                                            <AvatarFallback>{friend.name[0]}</AvatarFallback>
-                                                        </Avatar>
-                                                        {friend.name}
+                                                        <div className="flex items-center space-x-4">
+                                                            <Avatar>
+                                                                <AvatarImage src={friend.avatarUrl} alt={friend.username} />
+                                                                <AvatarFallback>{friend.username[0]}</AvatarFallback>
+                                                            </Avatar>
+                                                            <div>
+                                                                <p className="font-semibold">{friend.username}</p>
+                                                                <p className="text-sm text-gray-400">@{friend.username}</p>
+                                                            </div>
+                                                        </div>
                                                     </Label>
                                                 </motion.div>
                                             ))}
@@ -150,20 +241,11 @@ export default function CreateNewPlan() {
                                     </div>
 
                                     <div>
-                                        <h2 className="text-xl font-semibold mb-2 text-white">Travel Flexibility</h2>
-                                        <Slider
-                                            value={[flexibility]}
-                                            onValueChange={(values) => setFlexibility(values[0])}
-                                            max={100}
-                                            step={1}
-                                            className="bg-gray-800"
-                                        />
-                                        <p className="text-sm text-gray-400 mt-1">Flexibility: {flexibility}%</p>
-                                    </div>
-
-                                    <div>
                                         <h2 className="text-xl font-semibold mb-2 text-white">Location Preferences</h2>
-                                        <Select>
+                                        <Select
+                                            value={selectedLocationPreference}
+                                            onValueChange={setSelectedLocationPreference}
+                                        >
                                             <SelectTrigger className="w-full bg-gray-800 text-white border-gray-700">
                                                 <SelectValue placeholder="Select location preferences" />
                                             </SelectTrigger>
@@ -207,10 +289,14 @@ export default function CreateNewPlan() {
                                         </div>
                                     </div>
 
-                                    <Button type="submit" className="w-full relative overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50">
+                                    <Button
+                                        type="submit"
+                                        className="w-full relative overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+                                        disabled={isLoading}
+                                    >
                                         <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
                                         <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
-                                            Create Plan <Plus className="ml-2 h-5 w-5" />
+                                            {isLoading ? 'Creating Plan...' : 'Create Plan'} <Plus className="ml-2 h-5 w-5" />
                                         </span>
                                     </Button>
                                 </form>

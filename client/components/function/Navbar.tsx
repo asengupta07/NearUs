@@ -6,7 +6,7 @@ import { FaMapLocationDot } from "react-icons/fa6";
 
 export default function Navbar() {
     return (
-        <nav className="fixed h-[10vh] top-0 left-0 right-0 z-50 px-6 py-2 transition-all duration-300 ease-in-out bg-transparent flex items-center">
+        <nav className="sticky h-[10vh] top-0 left-0 right-0 z-50 px-6 py-2 transition-all duration-300 ease-in-out backdrop-blur-md flex items-center">
             <div className="container flex items-center justify-between mx-auto">
                 <Link href="/" className="flex items-center space-x-4">
                 <FaMapLocationDot className="text-2xl text-purple-600" />

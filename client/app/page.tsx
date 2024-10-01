@@ -13,7 +13,7 @@ export default function LandingPage() {
   return (
     <div>
       <Navbar />
-      <div className="relative h-screen w-full overflow-hidden bg-gray-950 text-white">
+      <div className="relative h-[90vh] w-full overflow-hidden bg-gray-950 text-white">
         <div className="relative z-20 flex h-full flex-col items-center justify-center px-4 text-center">
           <motion.h1
             className="mb-6 text-5xl font-bold tracking-tight md:text-6xl"

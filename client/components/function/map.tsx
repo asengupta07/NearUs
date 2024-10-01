@@ -20,7 +20,7 @@ interface MapComponentProps {
 const MapComponent: React.FC<MapComponentProps> = memo(({ height = "100%", width = "100%", theme = "dark", locations = [] }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<any>(null);
-
+    console.log(locations);
     useEffect(() => {
         if (!mapContainerRef.current || locations.length === 0) return;
 
