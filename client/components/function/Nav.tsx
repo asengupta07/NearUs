@@ -61,7 +61,7 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
         <>
             <nav className={`fixed h-[10vh] top-0 left-0 right-0 z-50 px-6 py-2 transition-all duration-300 ease-in-out ${isGlass ? 'bg-white/70 dark:bg-gray-900/70 backdrop-blur-md' : 'bg-transparent'} shadow-md flex items-center`}>
                 <div className="container flex items-center justify-between mx-auto">
-                    <Link href="/" className="flex items-center space-x-4">
+                    <Link href="/dashboard" className="flex items-center space-x-4">
                         <FaMapLocationDot className="text-2xl text-purple-600" />
                         <span className="text-2xl font-bold text-gray-800 dark:text-white">
                             Near<span className="text-purple-600">Us</span>
