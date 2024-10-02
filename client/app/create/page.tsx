@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import Navbar from '@/components/function/Nav'
 import MapComponent from '@/components/function/map'
 import { useAuth } from '@/contexts/authContext'
+import { useRouter } from 'next/navigation'
 
 interface Friend {
     id: string;
@@ -59,6 +60,7 @@ const scrollbarStyles = `
 `;
 
 export default function CreateNewPlan() {
+    const router = useRouter()
     const [friends, setFriends] = useState<Friend[]>([])
     const [selectedFriends, setSelectedFriends] = useState<string[]>([])
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
@@ -157,6 +159,8 @@ export default function CreateNewPlan() {
             setSelectedDate(new Date())
             setSelectedTime('12:00')
             setSelectedLocationPreference('')
+            router.push('/events')
+
         } catch (error) {
             console.error('Error creating plan:', error)
         } finally {

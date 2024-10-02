@@ -78,6 +78,7 @@ export default function EventPage() {
                 const response = await fetch(`/api/event/${eventId}`)
                 if (!response.ok) throw new Error('Failed to fetch event data')
                 const data = await response.json()
+                console.log('recieved data', data)
                 setEventDetails(data.eventDetails)
                 setAttendees(data.attendees)
             } catch (error) {
@@ -86,6 +87,10 @@ export default function EventPage() {
         }
         fetchEventData()
     }, [eventId])
+
+    useEffect(() => {
+        console.log('Attendees:', attendees)
+    }, [attendees])
 
     const handleFlexibilityChange = async (value: number[]) => {
         setUserFlexibility(value[0])
@@ -195,26 +200,14 @@ export default function EventPage() {
 
                         <Card className="bg-gray-900 border-none mb-6">
                             <CardHeader>
-                                <CardTitle className="text-2xl font-bold text-white">Your Preferences</CardTitle>
+                                <CardTitle className="text-2xl font-bold text-white">Your Flexibility</CardTitle>
+                                <p>Flexibility represents how far you're willing to travel from your preferred location.</p>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
                                     <div>
-                                        <Label htmlFor="location" className="text-white">Preferred Location</Label>
-                                        <div className="flex items-center mt-1">
-                                            <MapPin className="w-5 h-5 text-gray-400 mr-2" />
-                                            <Input
-                                                id="location"
-                                                placeholder="Enter your preferred location"
-                                                value={userLocation}
-                                                onChange={handleLocationChange}
-                                                className="bg-gray-800 text-white border-gray-700"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
                                         <div className="flex items-center justify-between">
-                                            <Label htmlFor="flexibility" className="text-white">Flexibility (km)</Label>
+                                            <Label htmlFor="flexibility" className="text-white">Select Flexibility (km)</Label>
                                             <TooltipProvider>
                                                 <Tooltip>
                                                     <TooltipTrigger>

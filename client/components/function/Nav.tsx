@@ -6,6 +6,7 @@ import Link from "next/link"
 import { FaMapLocationDot } from "react-icons/fa6"
 import { Bell, PlusCircle, Clock, Users, Menu, X } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
+import { set } from 'mongoose'
 
 interface Notification {
   id: number
@@ -31,7 +32,12 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
 
     const handleNotificationClick = () => {
         if (notifications.length === 0) {
-            toast.info("No new notifications")
+            toast.info("No new notifications",
+                {
+                    duration: 2000,
+                }
+            )
+            // setTimeout(() => toast.dismiss(), 2000)
         } else {
             toast(
                 <div className="w-full">
@@ -43,15 +49,9 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
                             </li>
                         ))}
                     </ul>
-                    <Button 
-                        onClick={() => toast.dismiss()} 
-                        className="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white"
-                    >
-                        Dismiss
-                    </Button>
                 </div>,
                 {
-                    duration: Infinity,
+                    duration: 2000,
                 }
             )
         }
@@ -74,10 +74,10 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
                                 <span>New Plan</span>
                             </Button>
                         </Link>
-                        <Link href="/history">
+                        <Link href="/events">
                             <Button variant="ghost" className="flex items-center space-x-2">
                                 <Clock className="w-5 h-5" />
-                                <span>History</span>
+                                <span>Events</span>
                             </Button>
                         </Link>
                         <Link href="/friends">
@@ -140,7 +140,7 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
                     </Button>
                     <Button 
                         className="w-full text-white bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 hover:from-purple-600 hover:via-violet-600 hover:to-pink-600"
-                        onClick={() => setIsMenuOpen(false)}
+                        onClick={() => setIsMenuOpen(true)}
                     >
                         Profile
                     </Button>

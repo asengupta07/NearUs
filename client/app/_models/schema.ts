@@ -119,17 +119,6 @@ const UserEventSchema = new mongoose.Schema({
         min: 0,
         max: 50
     },
-    preferredLocation: {
-        type: {
-            type: String,
-            enum: ['Point'],
-            default: 'Point'
-        },
-        coordinates: {
-            type: [Number],
-            default: [0, 0]
-        }
-    }
 }, { timestamps: true });
 
 UserSchema.index({ location: '2dsphere' });

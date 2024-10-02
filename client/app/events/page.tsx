@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import Navbar from '@/components/function/Nav'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/authContext'
+import { useRouter } from 'next/navigation'
 
 interface Event {
     id: string;
@@ -48,6 +49,7 @@ const scrollbarStyles = `
 `;
 
 const EventsPage: React.FC = () => {
+    const router = useRouter();
     const { email } = useAuth();
     const [eventsData, setEventsData] = useState<EventsData>({ upcomingEvents: [], pastEvents: [] });
     const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -178,34 +180,35 @@ const EventsPage: React.FC = () => {
     const EventList = ({ events, type }: { events: Event[], type: 'upcoming' | 'past' }) => (
         <motion.ul className="space-y-4">
             {events.map((event, index) => (
-                <motion.li
-                    key={event.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    whileHover={{ scale: 1.02 }}  // Add the hover scaling effect
-                    className="flex items-center justify-between p-4 bg-gray-800 rounded-lg transition-transform duration-60"
-                >
-
-                    <div>
-                        <h3 className="font-semibold text-white">{event.title}</h3>
-                        <p className="text-sm text-gray-300">
-                            <MapPin className="inline mr-1 h-4 w-4" /> {event.location}
-                        </p>
-                        <p className="text-sm text-gray-300">
-                            <Calendar className="inline mr-1 h-4 w-4" /> {event.date}
-                        </p>
-                    </div>
-                    {type === 'upcoming' && (
-                        <div className="flex -space-x-2">
-                            {event.friends.map((friend, i) => (
-                                <Avatar key={i} className="border-2 border-gray-800">
-                                    <AvatarFallback>{friend[0]}</AvatarFallback>
-                                </Avatar>
-                            ))}
+                
+                    <motion.li
+                        key={event.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        whileHover={{ scale: 1.02 }}
+                        className="flex items-center justify-between p-4 bg-gray-800 rounded-lg transition-transform duration-60"
+                        onClick={() => router.push(`/event?id=${event.id}`)}
+                    >
+                        <div>
+                            <h3 className="font-semibold text-white">{event.title}</h3>
+                            <p className="text-sm text-gray-300">
+                                <MapPin className="inline mr-1 h-4 w-4" /> {event.location}
+                            </p>
+                            <p className="text-sm text-gray-300">
+                                <Calendar className="inline mr-1 h-4 w-4" /> {event.date}
+                            </p>
                         </div>
-                    )}
-                </motion.li>
+                        {type === 'upcoming' && (
+                            <div className="flex -space-x-2">
+                                {event.friends.map((friend, i) => (
+                                    <Avatar key={i} className="border-2 border-gray-800">
+                                        <AvatarFallback>{friend[0]}</AvatarFallback>
+                                    </Avatar>
+                                ))}
+                            </div>
+                        )}
+                    </motion.li>
             ))}
         </motion.ul>
     );

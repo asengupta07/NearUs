@@ -11,6 +11,7 @@ const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserE
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         const eventId = params.id;
+        // console.log('Fetching event data for event:', eventId);
 
         const event = await Event.findById(eventId);
         if (!event) {
@@ -18,29 +19,34 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         }
 
         const userEvents = await UserEvent.find({ eventId })
-            .populate('userId', 'username email');
+            .populate('userId', 'username email location');
 
         const attendees = userEvents.map(ue => ({
             id: ue.userId._id.toString(),
             username: ue.userId.username,
             email: ue.userId.email,
             location: {
-                latitude: ue.preferredLocation.coordinates[1],
-                longitude: ue.preferredLocation.coordinates[0]
+                latitude: ue.userId.location.coordinates[1],
+                longitude: ue.userId.location.coordinates[0]
             },
             avatarUrl: `/api/avatar/${ue.userId.username}`, // Assuming you have an avatar API
             isAttending: ue.status === 'Going',
-            flexibility: ue.flexibility
+            flexibility: ue.flexibility? ue.flexibility : 2
         }));
+        // // console.log('Fetched event data:', event, attendees, userEvents);
+        console.log('Fetched event data:', userEvents);
 
-        return NextResponse.json({
+        const resp = {
             eventDetails: {
                 name: event.eventName,
                 date: event.eventDate,
                 description: event.description
             },
             attendees
-        }, { status: 200 });
+        };
+        console.log('Returning event data:', resp);
+
+        return NextResponse.json(resp, { status: 200 });
     } catch (error) {
         console.error('Error fetching event data:', error);
         return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });

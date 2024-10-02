@@ -3,7 +3,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import { UserSchema } from '@/app/_models/schema';
-import { ppid } from 'process';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
