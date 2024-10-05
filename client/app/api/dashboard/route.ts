@@ -35,51 +35,65 @@ async function handler(req: NextRequest) {
     try {
         // Find the user
         const user = await User.findOne({ email });
+        console.log('Found user:', user?._id);
 
         if (!user) {
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
 
         // Get user's friends
-        const userFriends = await UserFriend.find({ userId: user._id, status: 'Accepted' }).populate('friendId', 'username');
+        const userFriends = await UserFriend.find({ 
+            userId: user._id, 
+            status: 'Accepted' 
+        }).populate('friendId', 'username');
         const friends = userFriends.map(uf => uf.friendId.username);
 
-        // Get notifications
+        // Get notifications with full sender information
         const notifications = await Notification.find({
             recipient: user._id,
+            status: 'SENT'  // Only fetch sent notifications
         })
-        .populate('sender', 'username')
-        .populate('eventId', 'eventName')
+        .populate('sender', 'username email avatarUrl')
+        .populate('eventId', 'eventName eventDate location')
         .sort({ createdAt: -1 })
         .limit(10);
 
-        console.log('Found notifications:', notifications); 
+        console.log('Found notifications for user:', user._id, notifications.length);
 
         const formattedNotifications = notifications.map(notification => ({
             id: notification._id.toString(),
             message: notification.message,
             type: notification.type,
-            sender: notification.sender.username,
-            eventName: notification.eventId?.eventName,
-            createdAt: notification.createdAt,
+            sender: notification.sender ? {
+                username: notification.sender.username,
+                email: notification.sender.email,
+                avatarUrl: notification.sender.avatarUrl
+            } : null,
+            event: notification.eventId ? {
+                name: notification.eventId.eventName,
+                date: notification.eventId.eventDate,
+                location: notification.eventId.location
+            } : null,
+            createdAt: notification.createdAt.toISOString(),
             read: notification.read,
             status: notification.status
-          }));
+        }));
 
         console.log('Formatted notifications:', formattedNotifications);
 
         const currentDate = new Date();
-        const userEvents = await UserEvent.find({ userId: user._id, status: 'Going' })
-            .populate({
-                path: 'eventId',
-                populate: {
-                    path: 'attendees',
-                    model: 'User',
-                    select: 'username'
-                }
-            });
+        const userEvents = await UserEvent.find({ 
+            userId: user._id, 
+            status: 'Going' 
+        }).populate({
+            path: 'eventId',
+            populate: {
+                path: 'attendees',
+                model: 'User',
+                select: 'username'
+            }
+        });
 
-        // Process events
         const upcomingEvents = [];
         const pastEvents = [];
 
@@ -100,11 +114,9 @@ async function handler(req: NextRequest) {
             }
         }
 
-        // Sort events by date
         upcomingEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         pastEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        // Prepare response
         const dashboardData = {
             upcomingEvents,
             pastEvents,
@@ -112,15 +124,14 @@ async function handler(req: NextRequest) {
             notifications: formattedNotifications
         };
 
-        console.log('Dashboard data:', dashboardData);
-
         return NextResponse.json(dashboardData, { status: 200 });
     } catch (error) {
         console.error('Dashboard API error:', error);
-        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ 
+            message: 'Internal Server Error', 
+            error: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 });
     }
 }
 
-export {
-    handler as POST
-}
+export { handler as POST }

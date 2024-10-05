@@ -138,7 +138,8 @@ const NotificationSchema = new mongoose.Schema({
         'FRIEND_REQUEST_REJECTED',
         'NEW_FRIEND_REQUEST',
         'EVENT_CREATED',
-        'EVENT_INVITATION',
+        'EVENT_INVITATION_ACCEPTED',
+        'EVENT_INVITATION_DECLINED',
         'EVENT_UPDATED',
         'EVENT_CANCELLED'
       ],
@@ -150,7 +151,7 @@ const NotificationSchema = new mongoose.Schema({
     read: { type: Boolean, default: false },
     status: { type: String, enum: ['PENDING', 'SENT'], default: 'PENDING' },
     createdAt: { type: Date, default: Date.now }
-  });
+});
 
 UserSchema.index({ location: '2dsphere' });
 UserSchema.index({ username: 'text', email: 'text' });

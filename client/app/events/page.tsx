@@ -107,23 +107,30 @@ const EventsPage: React.FC = () => {
                 },
                 body: JSON.stringify({ invitationId, accept, email }),
             });
-            if (response.ok) {
-                const updatedInvitation = await response.json();
-                setInvitations(prevInvitations =>
-                    prevInvitations.filter(inv => inv.id !== invitationId)
-                );
-                if (accept) {
-                    setEventsData(prevData => ({
-                        ...prevData,
-                        upcomingEvents: [...prevData.upcomingEvents, updatedInvitation]
-                    }));
-                }
-            } else {
-                throw new Error('Failed to handle invitation');
+    
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to handle invitation');
             }
-        } catch (error) {
-            console.error('Failed to handle invitation', error);
-            setError('Failed to process invitation. Please try again.');
+    
+            const updatedInvitation = await response.json();
+            
+            // Remove the handled invitation from the state
+            setInvitations(prevInvitations =>
+                prevInvitations.filter(inv => inv.id !== invitationId)
+            );
+    
+            // If accepted, add to upcoming events
+            if (accept && updatedInvitation.id) {
+                setEventsData(prevData => ({
+                    ...prevData,
+                    upcomingEvents: [...prevData.upcomingEvents, updatedInvitation]
+                }));
+            }
+        } catch (err) {
+            const error = err as Error; 
+            console.error('Failed to handle invitation:', error);
+            setError(error.message || 'Failed to process invitation. Please try again.');
         }
     };
 

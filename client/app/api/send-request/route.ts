@@ -1,11 +1,10 @@
-"use server"
-
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
-import { UserSchema, UserFriendSchema } from '@/app/_models/schema';
+import { UserSchema, UserFriendSchema, NotificationSchema } from '@/app/_models/schema';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
+const Notification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
 
 interface SendRequestBody {
     senderEmail: string;
@@ -78,6 +77,17 @@ async function handler(req: NextRequest) {
         });
 
         await newFriendRequest.save();
+
+        // Create a NEW_FRIEND_REQUEST notification
+        const notification = new Notification({
+            recipient: receiver._id,
+            type: 'NEW_FRIEND_REQUEST',
+            sender: sender._id,
+            message: `${sender.username} sent you a friend request`,
+            read: false,
+            status: 'PENDING'
+        });
+        await notification.save();
 
         return NextResponse.json({ message: 'Friend request sent successfully' }, { status: 200 });
     } catch (error) {
