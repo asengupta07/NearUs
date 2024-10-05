@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "cloudinary": "^2.5.0",
-    "react-hot-toast": "^2.4.1"
-  }
-}
