@@ -33,20 +33,21 @@ async function handler(req: NextRequest) {
             { $text: { $search: query } },
             { score: { $meta: 'textScore' } }
         )
-        .select('_id username email')
+        .select('_id username email avatarUrl')
         .sort({ score: { $meta: 'textScore' } })
         .limit(10)
         .lean();
         
-        console.log(users);
+        console.log('Found users:', users);
 
         const formattedUsers = users.map(user => ({
             id: user._id,
             username: user.username,
             email: user.email,
-            avatarUrl: `/api/avatar/${user._id}`
+            avatarUrl: user.avatarUrl || ''
         }));
-        console.log(formattedUsers);
+        
+        console.log('Formatted users:', formattedUsers);
         return NextResponse.json(formattedUsers, { status: 200 });
     } catch (error) {
         console.error('Search API Error:', error);

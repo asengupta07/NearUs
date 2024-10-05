@@ -52,9 +52,22 @@ async function handler(req: NextRequest) {
                 { userId: receiver._id, friendId: sender._id }
             ]
         });
+        console.log("Checking for existing request...");
 
         if (existingRequest) {
-            return NextResponse.json({ message: 'Friend request already exists' }, { status: 409 });
+            console.log("ExistingRequest found:", existingRequest);
+            if (existingRequest.status === "Pending") {
+                return NextResponse.json(
+                    { 
+                        success: false,
+                        error: 'RequestAlreadyPending',
+                        message: 'A friend request is already pending with this user. Please wait for a response.'
+                    },
+                    { status: 409 }
+                );
+            }
+        } else {
+            console.log("No existing request found.");
         }
 
         // Create a new friend request

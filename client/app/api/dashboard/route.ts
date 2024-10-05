@@ -2,12 +2,13 @@
 
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
-import { UserSchema, EventSchema, UserFriendSchema, UserEventSchema } from '@/app/_models/schema';
+import { UserSchema, EventSchema, UserFriendSchema, UserEventSchema, NotificationSchema } from '@/app/_models/schema';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);
 const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
 const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserEventSchema);
+const Notification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
 
 interface DashboardRequestBody {
     email: string;
@@ -42,6 +43,30 @@ async function handler(req: NextRequest) {
         // Get user's friends
         const userFriends = await UserFriend.find({ userId: user._id, status: 'Accepted' }).populate('friendId', 'username');
         const friends = userFriends.map(uf => uf.friendId.username);
+
+        // Get notifications
+        const notifications = await Notification.find({
+            recipient: user._id,
+        })
+        .populate('sender', 'username')
+        .populate('eventId', 'eventName')
+        .sort({ createdAt: -1 })
+        .limit(10);
+
+        console.log('Found notifications:', notifications); 
+
+        const formattedNotifications = notifications.map(notification => ({
+            id: notification._id.toString(),
+            message: notification.message,
+            type: notification.type,
+            sender: notification.sender.username,
+            eventName: notification.eventId?.eventName,
+            createdAt: notification.createdAt,
+            read: notification.read,
+            status: notification.status
+          }));
+
+        console.log('Formatted notifications:', formattedNotifications);
 
         const currentDate = new Date();
         const userEvents = await UserEvent.find({ userId: user._id, status: 'Going' })
@@ -83,8 +108,11 @@ async function handler(req: NextRequest) {
         const dashboardData = {
             upcomingEvents,
             pastEvents,
-            friends
+            friends,
+            notifications: formattedNotifications
         };
+
+        console.log('Dashboard data:', dashboardData);
 
         return NextResponse.json(dashboardData, { status: 200 });
     } catch (error) {

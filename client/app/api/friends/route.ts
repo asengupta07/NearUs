@@ -33,7 +33,7 @@ async function handler(req: NextRequest) {
 
     try {
         // Find the user
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).select('username email location avatarUrl');
 
         if (!user) {
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
@@ -43,24 +43,25 @@ async function handler(req: NextRequest) {
         const userFriends = await UserFriend.find({ 
             userId: user._id, 
             status: 'Accepted' 
-        }).populate('friendId', 'username email location');
+        }).populate('friendId', 'username email location avatarUrl');
 
         const friends = userFriends.map(uf => ({
             id: uf.friendId._id.toString(),
             username: uf.friendId.username,
             email: uf.friendId.email,
-            avatarUrl: `/api/avatar/${uf.friendId._id}`,
+            avatarUrl: uf.friendId.avatarUrl || '',
             location: {
                 latitude: uf.friendId.location.coordinates[1],
                 longitude: uf.friendId.location.coordinates[0],
                 id: uf.friendId._id.toString()
             }
         }));
+
         const me = {
             id: user._id.toString(),
             username: user.username,
             email: user.email,
-            avatarUrl: `/api/avatar/${user._id}`,
+            avatarUrl: user.avatarUrl || '',
             location: {
                 latitude: user.location.coordinates[1],
                 longitude: user.location.coordinates[0],

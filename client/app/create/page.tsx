@@ -134,6 +134,7 @@ export default function CreateNewPlan() {
         e.preventDefault()
         setIsLoading(true)
         try {
+            // Create the plan
             const response = await fetch('/api/create-plan', {
                 method: 'POST',
                 headers: {
@@ -153,6 +154,29 @@ export default function CreateNewPlan() {
             }
             const data = await response.json()
             console.log('Plan created:', data)
+
+            // Send notifications to invited friends
+            const notificationPromises = selectedFriends.map(async (friendId) => {
+                const notificationResponse = await fetch('/api/notifications', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        recipient: friendId,
+                        type: 'EVENT_INVITATION',
+                        sender: email, // Assuming the logged-in user's email is the sender
+                        eventId: data.eventId, // Assuming the create-plan API returns the new event's ID
+                        message: `You've been invited to ${planName}!`,
+                    }),
+                })
+                if (!notificationResponse.ok) {
+                    console.error(`Failed to send notification to friend ${friendId}`)
+                }
+            })
+
+            await Promise.all(notificationPromises)
+
             // Reset form or navigate to a success page
             setPlanName('')
             setSelectedFriends([])

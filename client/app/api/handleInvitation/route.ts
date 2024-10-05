@@ -1,10 +1,13 @@
+"use server"
+
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
-import { UserSchema, EventSchema, UserEventSchema } from '@/app/_models/schema';
+import { UserSchema, EventSchema, UserEventSchema, NotificationSchema } from '@/app/_models/schema';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);
 const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserEventSchema);
+const Notification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
 
 export async function POST(req: NextRequest) {
     try {
@@ -26,9 +29,25 @@ export async function POST(req: NextRequest) {
         invitation.status = accept ? 'Going' : 'Not Going';
         await invitation.save();
 
+        // Find the event creator
+        const event = await Event.findById(invitation.eventId._id).populate('creator');
+
+        // Create a notification for the event creator
+        const notification = new Notification({
+            recipient: event.creator._id,
+            type: accept ? 'EVENT_INVITATION_ACCEPTED' : 'EVENT_INVITATION_DECLINED',
+            sender: user._id,
+            eventId: event._id,
+            message: `${user.username} has ${accept ? 'accepted' : 'declined'} the invitation to ${event.eventName}`,
+            read: false,
+            status: 'PENDING'
+        });
+        await notification.save();
+
+        console.log('Event invitation notification created:', notification);
+
         if (accept) {
             // If accepting, return the event details
-            const event = invitation.eventId;
             const attendingFriends = await UserEvent.find({
                 eventId: event._id,
                 status: 'Going',

@@ -3,15 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useRouter } from 'next/navigation'
 import { FaMapLocationDot } from "react-icons/fa6"
 import { Bell, PlusCircle, Clock, Users, Menu, X } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
-import { set } from 'mongoose'
-
-interface Notification {
-  id: number
-  message: string
-}
+import { Notification } from '@/types'
 
 interface SignedInNavbarProps {
   notifications: Notification[]
@@ -20,6 +16,7 @@ interface SignedInNavbarProps {
 export default function Navbar({ notifications }: SignedInNavbarProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isGlass, setIsGlass] = useState(false)
+    const router = useRouter()
 
     useEffect(() => {
         const handleScroll = () => {
@@ -29,6 +26,10 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
+
+    const handleProfileClick = () => {
+        router.push('/profile')  // Add this function
+    }
 
     const handleNotificationClick = () => {
         if (notifications.length === 0) {
@@ -92,7 +93,7 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
                         >
                             <Bell className="w-5 h-5" />
                         </Button>
-                        <Button className="text-white bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 hover:from-purple-600 hover:via-violet-600 hover:to-pink-600">
+                        <Button className="text-white bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 hover:from-purple-600 hover:via-violet-600 hover:to-pink-600" onClick={handleProfileClick}>
                             Profile
                         </Button>
                     </div>
@@ -140,7 +141,10 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
                     </Button>
                     <Button 
                         className="w-full text-white bg-gradient-to-r from-purple-500 via-violet-500 to-pink-500 hover:from-purple-600 hover:via-violet-600 hover:to-pink-600"
-                        onClick={() => setIsMenuOpen(true)}
+                        onClick={() => {
+                            setIsMenuOpen(false)
+                            handleProfileClick()  // Add this line
+                        }}
                     >
                         Profile
                     </Button>

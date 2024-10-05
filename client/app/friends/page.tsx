@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils"
 import Link from 'next/link'
 import Navbar from '@/components/function/Nav'
 import { useAuth } from '@/contexts/authContext'
+import { toast } from 'react-hot-toast'
+import { Notification } from '@/types'
 
 interface User {
     id: string;
@@ -19,6 +21,11 @@ interface User {
     username: string;
     avatarUrl: string;
 }
+
+interface UserWithRequestStatus extends User {
+    requestStatus: 'none' | 'sent' | 'pending' | 'friends';
+}
+
 interface PendingRequest {
     id: string;
     sender: User;
@@ -26,18 +33,53 @@ interface PendingRequest {
 
 export default function AddFriends() {
     const [searchQuery, setSearchQuery] = useState('')
-    const [searchResults, setSearchResults] = useState<User[]>([])
+    const [searchResults, setSearchResults] = useState<UserWithRequestStatus[]>([])
     const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [friends, setFriends] = useState<User[]>([])
+    const [notifications, setNotifications] = useState<Notification[]>([])
     const { email } = useAuth()
 
     useEffect(() => {
         if (email) {
             fetchFriends()
             fetchPendingRequests()
+            fetchNotifications()
         }
     }, [email])
+
+    const fetchNotifications = async () => {
+        try {
+            const response = await fetch(`/api/notifications?userId=${email}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch notifications');
+            }
+            const data: Notification[] = await response.json();
+            setNotifications(data);
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    };
+    
+    const updateNotification = async (notificationId: string, action: 'markAsRead' | 'delete') => {
+        try {
+            const response = await fetch('/api/update-notification', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    notificationIds: [notificationId],
+                    action: action
+                }),
+            });
+            if (!response.ok) {
+                throw new Error('Failed to update notification');
+            }
+            // Refresh notifications after update
+            fetchNotifications();
+        } catch (error) {
+            console.error('Error updating notification:', error);
+        }
+    };
 
     const handleAcceptRequest = async (requestId: string) => {
         try {
@@ -51,12 +93,23 @@ export default function AddFriends() {
                 }),
             });
             if (!response.ok) {
-                throw new Error('Failed to accept friend request');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to accept friend request');
             }
+            const data = await response.json();
+            console.log('Friend request accepted:', data);
             setPendingRequests(prev => prev.filter(request => request.id !== requestId));
             fetchFriends();
+            fetchNotifications();
+            
+            // Update the notification related to this friend request
+            const relatedNotification = notifications.find(n => n.type === 'NEW_FRIEND_REQUEST' && n.sender.id === requestId);
+            if (relatedNotification) {
+                updateNotification(relatedNotification.id, 'markAsRead');
+            }
         } catch (error) {
             console.error('Error accepting friend request:', error);
+            toast.error('Failed to accept friend request. Please try again.');
         }
     };
 
@@ -74,13 +127,18 @@ export default function AddFriends() {
             if (!response.ok) {
                 throw new Error('Failed to reject friend request');
             }
-            // Remove the rejected request from the pending list
             setPendingRequests(prev => prev.filter(request => request.id !== requestId));
+            
+            // Update the notification related to this friend request
+            const relatedNotification = notifications.find(n => n.type === 'NEW_FRIEND_REQUEST' && n.sender.id === requestId);
+            if (relatedNotification) {
+                updateNotification(relatedNotification.id, 'delete');
+            }
         } catch (error) {
             console.error('Error rejecting friend request:', error);
-            // You might want to show an error message to the user here
+            toast.error('Failed to reject friend request. Please try again.');
         }
-    };
+    };    
 
     const fetchFriends = async () => {
         try {
@@ -108,7 +166,12 @@ export default function AddFriends() {
             })
             if (!response.ok) throw new Error('Search failed')
             const data = await response.json()
-            setSearchResults(data)
+            // Add requestStatus property to each user
+            const usersWithRequestStatus: UserWithRequestStatus[] = data.map((user: User) => ({
+                ...user,
+                requestStatus: 'none'
+            }))
+            setSearchResults(usersWithRequestStatus)
         } catch (error) {
             console.error('Error searching users:', error)
         } finally {
@@ -174,6 +237,17 @@ export default function AddFriends() {
 
 
     const handleSendRequest = async (userId: string) => {
+        const userToUpdate = searchResults.find(user => user.id === userId);
+        if (!userToUpdate) return;
+    
+        if (userToUpdate.requestStatus !== 'none') {
+            toast('Friend request already sent or pending.', {
+                icon: '🔔',
+                duration: 4000,
+            });
+            return;
+        }
+    
         try {
             const response = await fetch('/api/send-request', {
                 method: 'POST',
@@ -183,13 +257,28 @@ export default function AddFriends() {
                     receiverId: userId 
                 }),
             });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to send friend request');
+            
+            const data = await response.json();
+            console.log(response)
+            if (response.ok) {
+                toast.success(data.message || 'Friend request sent successfully!');
+                setSearchResults(prev => prev.map(user => 
+                    user.id === userId ? { ...user, requestStatus: 'sent' } : user
+                ));
+            } else if (response.status === 409) {
+                toast(data.message || 'Friend request already exists', {
+                    icon: '🔔',
+                    duration: 4000,
+                });
+                setSearchResults(prev => prev.map(user => 
+                    user.id === userId ? { ...user, requestStatus: 'pending' } : user
+                ));
+            } else {
+                throw new Error(data.message || 'Failed to send friend request');
             }
-            setPendingRequests(prev => [...prev, { id: userId, sender: { id: userId, name: '', username: '', avatarUrl: '' } }]);
         } catch (error) {
             console.error('Error sending friend request:', error);
+            toast.error('Failed to send friend request. Please try again.');
         }
     };
 
@@ -216,7 +305,7 @@ export default function AddFriends() {
 
     return (
         <>
-            <Navbar notifications={[]} />
+            <Navbar notifications={notifications} />
             <div className="relative min-h-screen pt-8 w-full overflow-hidden bg-gray-950 text-white">
                 <div className="relative z-20 max-w-4xl mx-auto w-full flex-grow flex flex-col p-4 sm:p-6 lg:p-8">
                     <header className="text-center mb-8">
@@ -254,60 +343,56 @@ export default function AddFriends() {
 
                     <AnimatePresence>
                         {searchResults.length > 0 && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <Card className="bg-gray-900 border-none mb-8">
-                                    <CardHeader>
-                                        <CardTitle className="text-white">Search Results</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <ul className="space-y-4">
-                                            {searchResults.map((user) => (
-                                                <motion.li
-                                                    key={user.id}
-                                                    initial={{ opacity: 0, x: -20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    exit={{ opacity: 0, x: 20 }}
-                                                    transition={{ duration: 0.2 }}
-                                                    className="flex items-center justify-between bg-gray-800 p-4 rounded-lg"
-                                                >
-                                                    <div className="flex items-center space-x-4">
-                                                        <Avatar>
-                                                            <AvatarImage src={user.avatarUrl} alt={user.username} />
-                                                            <AvatarFallback>{user.username}</AvatarFallback>
-                                                        </Avatar>
-                                                        <div>
-                                                            <p className="font-semibold">{user.username}</p>
-                                                            <p className="text-sm text-gray-400">@{user.username}</p>
-                                                        </div>
+                            <motion.div>
+                            <Card className="bg-gray-900 border-none mb-8">
+                                <CardHeader>
+                                    <CardTitle className="text-white">Search Results</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ul className="space-y-4">
+                                        {searchResults.map((user) => (
+                                            <motion.li
+                                                key={user.id}
+                                                className="flex items-center justify-between bg-gray-800 p-4 rounded-lg"
+                                            >
+                                                <div className="flex items-center space-x-4">
+                                                    <Avatar>
+                                                        <AvatarImage src={user.avatarUrl} alt={user.username} />
+                                                        <AvatarFallback>{user.username}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-semibold">{user.username}</p>
+                                                        <p className="text-sm text-gray-400">@{user.username}</p>
                                                     </div>
-                                                    <Button
-                                                        onClick={() => handleSendRequest(user.id)}
-                                                        disabled={pendingRequests.some(request => request.sender.id === user.id)}
-                                                        variant={pendingRequests.some(request => request.sender.id === user.id) ? "secondary" : "default"}
-                                                    >
-                                                        {pendingRequests.some(request => request.sender.id === user.id) ? (
-                                                            <>
-                                                                <UserCheck className="mr-2 h-4 w-4" />
-                                                                Requested
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <UserPlus className="mr-2 h-4 w-4" />
-                                                                Add Friend
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                </motion.li>
-                                            ))}
-                                        </ul>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
+                                                </div>
+                                                <Button
+                                                    onClick={() => handleSendRequest(user.id)}
+                                                    disabled={user.requestStatus !== 'none'}
+                                                    variant={user.requestStatus !== 'none' ? "secondary" : "default"}
+                                                >
+                                                    {user.requestStatus === 'none' ? (
+                                                        <>
+                                                            <UserPlus className="mr-2 h-4 w-4" />
+                                                            Add Friend
+                                                        </>
+                                                    ) : user.requestStatus === 'sent' || user.requestStatus === 'pending' ? (
+                                                        <>
+                                                            <UserCheck className="mr-2 h-4 w-4" />
+                                                            Requested
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <UserCheck className="mr-2 h-4 w-4" />
+                                                            Friends
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </motion.li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
                         )}
                     </AnimatePresence>
 
