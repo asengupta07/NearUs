@@ -17,6 +17,18 @@ import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/authContext'
 import ResultComponent from '@/components/function/Results'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+    ChevronUp,
+    ChevronDown,
+    Clock,
+    Phone,
+    Globe,
+    ThumbsUp,
+    ThumbsDown
+} from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { AnimatePresence } from 'framer-motion';
+
 
 interface Attendee {
     id: string;
@@ -37,25 +49,39 @@ interface Location {
     distance: number;
     place_id: string;
     coords: {
-      lat: number;
-      lng: number;
+        lat: number;
+        lng: number;
     };
     formatted_address: string;
     rating: number;
     user_ratings_total: number;
     opening_hours?: {
-      open_now: boolean;
-      weekday_text: string[];
+        open_now: boolean;
+        weekday_text: string[];
     };
     formatted_phone_number?: string;
     website?: string;
     price_level?: number;
     photos?: {
-      photo_reference: string;
-      height: number;
-      width: number;
+        photo_reference: string;
+        height: number;
+        width: number;
     }[];
-  }
+}
+
+interface Vote {
+    vote: 'up' | 'down';
+    user: string;
+}
+
+interface SuggestedSpot extends Location {
+    _id: string;
+    votes: Vote[];
+    suggested_by: {
+        username: string;
+        email: string;
+    };
+}
 
 const scrollbarStyles = `
   .custom-scrollbar {
@@ -93,6 +119,60 @@ export default function EventPage() {
     const [searchResults, setSearchResults] = useState<Location[]>([])
     const { email } = useAuth()
     const [canSuggestPlaces, setCanSuggestPlaces] = useState(true)
+    const [suggestedSpots, setSuggestedSpots] = useState<SuggestedSpot[]>([])
+    const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
+    const [userVotes, setUserVotes] = useState<{ [key: string]: string }>({})
+
+    useEffect(() => {
+        const fetchSuggestedSpots = async () => {
+            try {
+                const response = await fetch(`/api/suggested-places?eventId=${eventId}`)
+                if (!response.ok) throw new Error('Failed to fetch suggested spots')
+                const data = await response.json()
+                setSuggestedSpots(data.suggestedSpots)
+            } catch (error) {
+                console.error('Error fetching suggested spots:', error)
+            }
+        }
+        fetchSuggestedSpots()
+    }, [eventId])
+
+    const toggleCard = (placeId: string) => {
+        setExpandedCards(prev => ({ ...prev, [placeId]: !prev[placeId] }))
+    }
+
+    const renderStars = (rating: number) => {
+        return Array(5).fill(0).map((_, i) => (
+            <svg key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+        ))
+    }
+
+    const renderPriceLevel = (priceLevel: number) => {
+        return Array(4).fill(0).map((_, i) => (
+            <span key={i} className={`text-lg ${i < priceLevel ? 'text-green-500' : 'text-gray-400'}`}>$</span>
+        ))
+    }
+
+    const handleVote = async (spotId: string, voteType: string) => {
+        try {
+            const response = await fetch('/api/vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventId, spotId, voteType, userEmail: email }),
+            });
+            if (!response.ok) throw new Error('Failed to submit vote');
+            const data = await response.json();
+            
+            // Update your state with the returned updatedSpot
+            setSuggestedSpots(prev => 
+                prev.map(spot => spot._id === spotId ? data.updatedSpot : spot)
+            );
+        } catch (error) {
+            console.error('Error submitting vote:', error);
+        }
+    };
 
     useEffect(() => {
         const fetchEventData = async () => {
@@ -100,9 +180,9 @@ export default function EventPage() {
                 const response = await fetch(`/api/event/${eventId}`)
                 if (!response.ok) throw new Error('Failed to fetch event data')
                 const data = await response.json()
-                console.log('recieved data', data.attendees)
+                // console.log('recieved data', data.attendees)
                 data.attendees.forEach((attendee: Attendee) => {
-                    console.log('attendee', attendee.email, email, attendee.email === email)
+                    // console.log('attendee', attendee.email, email, attendee.email === email)
                     if (attendee.email === email) {
                         setUserFlexibility(attendee.flexibility)
                     }
@@ -269,7 +349,151 @@ export default function EventPage() {
                             </div>
                         </CardContent>
                     </Card>
-
+                    <Card className="bg-gray-900 border-none mb-6">
+                        <CardHeader>
+                            <CardTitle className="text-2xl font-bold text-white">Suggested Spots</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {suggestedSpots.length === 0 ? (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.5 }}
+                                    className="text-center py-10"
+                                >
+                                    <h3 className="text-2xl font-bold mb-4">No spots suggested yet!</h3>
+                                    <p className="text-gray-400 mb-6">Be the first to suggest an awesome spot for the event!</p>
+                                </motion.div>
+                            ) : (
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    <AnimatePresence>
+                                        {suggestedSpots.map((spot) => (
+                                            <motion.div
+                                                key={spot.place_id}
+                                                layout
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                transition={{ duration: 0.5 }}
+                                            >
+                                                <Card className="bg-gray-800 text-white overflow-hidden">
+                                                    <CardHeader className="pb-2">
+                                                        <CardTitle className="text-xl font-bold truncate">{spot.name}</CardTitle>
+                                                        <div className="flex items-center space-x-2 mt-1">
+                                                            <div className="flex">{renderStars(spot.rating)}</div>
+                                                            <span className="text-sm">({spot.user_ratings_total} reviews)</span>
+                                                        </div>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <p className="text-sm text-gray-300 mb-2 truncate">
+                                                            {expandedCards[spot.place_id] ? spot.formatted_address : spot.formatted_address}
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-2 mb-2">
+                                                            {spot.types.slice(0, 3).map((type, index) => (
+                                                                <Badge key={index} variant="secondary" className="text-xs">
+                                                                    {type.replace('_', ' ')}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                        <div className="flex items-center justify-between">
+                                                            {/* <span className="text-sm">{spot.distance.toFixed(2)} km away</span> */}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => toggleCard(spot.place_id)}
+                                                                className="text-blue-400 hover:text-blue-300"
+                                                            >
+                                                                {expandedCards[spot.place_id] ? <ChevronUp className="mr-1" /> : <ChevronDown className="mr-1" />}
+                                                                {expandedCards[spot.place_id] ? 'Less' : 'More'}
+                                                            </Button>
+                                                        </div>
+                                                        <AnimatePresence>
+                                                            {expandedCards[spot.place_id] && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, height: 0 }}
+                                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                                    exit={{ opacity: 0, height: 0 }}
+                                                                    transition={{ duration: 0.3 }}
+                                                                    className="mt-4 space-y-2"
+                                                                >
+                                                                    <p className="text-sm text-gray-300 mb-2">{spot.formatted_address}</p>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Clock className="w-4 h-4 text-gray-400" />
+                                                                        <span className="text-sm">
+                                                                            {spot.opening_hours? spot.opening_hours.open_now ? 'Open now' : 'Closed': 'Opening hours not available'}
+                                                                        </span>
+                                                                    </div>
+                                                                    {spot.formatted_phone_number && (
+                                                                        <div className="flex items-center space-x-2">
+                                                                            <Phone className="w-4 h-4 text-gray-400" />
+                                                                            <span className="text-sm">{spot.formatted_phone_number}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {spot.website && (
+                                                                        <div className="flex items-center space-x-2">
+                                                                            <Globe className="w-4 h-4 text-gray-400" />
+                                                                            <a href={spot.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:underline truncate">
+                                                                                {spot.website}
+                                                                            </a>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <span className="text-sm">Price Level:</span>
+                                                                        <div className="flex">{spot.price_level !== undefined && renderPriceLevel(spot.price_level)}</div>
+                                                                    </div>
+                                                                    {spot.opening_hours?.weekday_text && (
+                                                                        <div className="mt-2">
+                                                                            <h4 className="text-sm font-semibold mb-1">Opening Hours:</h4>
+                                                                            <ul className="text-xs space-y-1">
+                                                                                {spot.opening_hours.weekday_text.map((day, index) => (
+                                                                                    <li key={index}>{day}</li>
+                                                                                ))}
+                                                                            </ul>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="mt-4 flex items-center justify-between">
+                                                                        <div className="flex space-x-2">
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => handleVote(spot._id, 'up')}
+                                                                                className={cn(
+                                                                                    "bg-gray-700 hover:bg-gray-600",
+                                                                                    userVotes[spot._id] === 'up' && "bg-green-600 hover:bg-green-700"
+                                                                                )}
+                                                                            >
+                                                                                <ThumbsUp className="w-4 h-4 mr-1" />
+                                                                                {spot.votes.filter(v => v.vote === 'up').length}
+                                                                            </Button>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => handleVote(spot._id, 'down')}
+                                                                                className={cn(
+                                                                                    "bg-gray-700 hover:bg-gray-600",
+                                                                                    userVotes[spot._id] === 'down' && "bg-red-600 hover:bg-red-700"
+                                                                                )}
+                                                                            >
+                                                                                <ThumbsDown className="w-4 h-4 mr-1" />
+                                                                                {spot.votes.filter(v => v.vote === 'down').length}
+                                                                            </Button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <span className="text-sm text-gray-400">
+                                                                        Suggested by: {spot.suggested_by.username}
+                                                                    </span>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </CardContent>
+                                                </Card>
+                                            </motion.div>
+                                        ))}
+                                    </AnimatePresence>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                     <Card className="bg-gray-900 border-none">
                         <CardHeader>
                             <CardTitle className="text-2xl font-bold text-white">Search Places</CardTitle>

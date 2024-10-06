@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             isAttending: ue.status === 'Going',
             flexibility: ue.flexibility || 2
         }));
-        console.log('Fetched event data:', userEvents);
+        // console.log('Fetched event data:', userEvents);
 
         const resp = {
             eventDetails: {
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             },
             attendees
         };
-        console.log('Returning event data:', resp);
+        // console.log('Returning event data:', resp);
 
         return NextResponse.json(resp, { status: 200 });
     } catch (error) {

@@ -73,27 +73,29 @@ export default function ResultComponent({ searchResults, eventId, userEmail }: R
   const addToEvent = async (place: FormattedPlace) => {
     setAddingToEvent(prev => ({ ...prev, [place.place_id]: true }))
     try {
-      const response = await fetch('/api/add-to-event', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          eventId,
-          place: {
-            name: place.name,
-            place_id: place.place_id,
-            formatted_address: place.formatted_address,
-            coords: place.coords,
-            rating: place.rating,
-            user_ratings_total: place.user_ratings_total,
-            types: place.types,
-            website: place.website,
-            formatted_phone_number: place.formatted_phone_number,
-          },
-            userEmail,
-        }),
-      })
+        const response = await fetch('/api/add-to-event', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              eventId,
+              place: {
+                name: place.name,
+                place_id: place.place_id,
+                formatted_address: place.formatted_address,
+                coords: place.coords,
+                rating: place.rating,
+                user_ratings_total: place.user_ratings_total,
+                types: place.types,
+                website: place.website,
+                formatted_phone_number: place.formatted_phone_number,
+                price_level: place.price_level,
+                opening_hours: place.opening_hours,
+              },
+              userEmail: userEmail,
+            }),
+          });
 
       if (response.ok) {
         toast({

@@ -41,7 +41,7 @@ const OpeningHoursSchema = new mongoose.Schema({
     weekday_text: [String]
 }, { _id: false });
 
-// Define a separate schema for suggested locations
+
 const SuggestedLocationSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -67,13 +67,11 @@ const SuggestedLocationSchema = new mongoose.Schema({
         }
     },
     rating: {
-        type: Number,
-        min: 0,
-        max: 5
+        type: String,
     },
     user_ratings_total: {
-        type: Number,
-        default: 0
+        type: String,
+        default: '0'
     },
     types: [{
         type: String
@@ -81,9 +79,7 @@ const SuggestedLocationSchema = new mongoose.Schema({
     website: String,
     formatted_phone_number: String,
     price_level: {
-        type: Number,
-        min: 0,
-        max: 4
+        type: String,
     },
     opening_hours: OpeningHoursSchema,
     suggested_by: {

@@ -28,7 +28,7 @@ interface Location {
 interface RequestBody {
     eventId: string;
     place: Location;
-    userEmail: string;  // Added userEmail to the request body
+    userEmail: string;
 }
 
 async function posthandler(req: NextRequest) {
@@ -76,7 +76,7 @@ async function posthandler(req: NextRequest) {
             }, { status: 400 });
         }
 
-        // Add the new suggested location
+        // Structure the new suggested location according to the schema
         const newSuggestedLocation = {
             name: place.name,
             place_id: place.place_id,
@@ -91,11 +91,15 @@ async function posthandler(req: NextRequest) {
             website: place.website,
             formatted_phone_number: place.formatted_phone_number,
             price_level: place.price_level,
-            opening_hours: place.opening_hours,
+            opening_hours: place.opening_hours ? {
+                open_now: place.opening_hours.open_now,
+                weekday_text: place.opening_hours.weekday_text
+            } : undefined,
             suggested_by: user._id,
             votes: []
         };
 
+        // Update the event with the new suggested location
         const updatedEvent = await Event.findByIdAndUpdate(
             eventId,
             { 
@@ -104,17 +108,20 @@ async function posthandler(req: NextRequest) {
                 } 
             },
             { new: true }
-        );
+        ).populate('attendees', 'email');
+
+        // console.log('Updated event:', updatedEvent);
 
         // Create notifications for all attendees except the suggester
-        const attendeeNotifications = updatedEvent.attendees
+        const attendeeNotifications = event.attendees
             .filter((attendeeId: mongoose.Types.ObjectId) => 
                 !attendeeId.equals(user._id))
             .map((attendeeId: mongoose.Types.ObjectId) => ({
                 recipient: attendeeId,
                 sender: user._id,
                 eventId: event._id,
-                message: `A new location "${place.name}" has been suggested for ${event.eventName}`
+                message: `A new location "${place.name}" has been suggested for ${event.eventName}`,
+                type: 'locationSuggestion'
             }));
 
         if (attendeeNotifications.length > 0) {
