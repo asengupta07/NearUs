@@ -36,6 +36,73 @@ const UserSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+const OpeningHoursSchema = new mongoose.Schema({
+    open_now: Boolean,
+    weekday_text: [String]
+}, { _id: false });
+
+// Define a separate schema for suggested locations
+const SuggestedLocationSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
+    },
+    place_id: {
+        type: String,
+        required: true
+    },
+    formatted_address: {
+        type: String,
+        required: true
+    },
+    location: {
+        type: {
+            type: String,
+            enum: ['Point'],
+            default: 'Point'
+        },
+        coordinates: {
+            type: [Number],
+            required: true
+        }
+    },
+    rating: {
+        type: Number,
+        min: 0,
+        max: 5
+    },
+    user_ratings_total: {
+        type: Number,
+        default: 0
+    },
+    types: [{
+        type: String
+    }],
+    website: String,
+    formatted_phone_number: String,
+    price_level: {
+        type: Number,
+        min: 0,
+        max: 4
+    },
+    opening_hours: OpeningHoursSchema,
+    suggested_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    votes: [{
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        vote: {
+            type: String,
+            enum: ['up', 'down']
+        }
+    }]
+}, { timestamps: true, _id: false });
+
 const EventSchema = new mongoose.Schema({
     eventName: {
         type: String,
@@ -71,21 +138,13 @@ const EventSchema = new mongoose.Schema({
         type: Number,
         default: null
     },
-    suggestedLocations: [{
-        name: String,
-        location: {
-            type: {
-                type: String,
-                enum: ['Point'],
-                default: 'Point'
-            },
-            coordinates: {
-                type: [Number],
-                required: true
-            }
-        }
-    }],
+    suggestedLocations: [SuggestedLocationSchema],
+    finalLocation: {
+        type: SuggestedLocationSchema,
+        default: null
+    }
 }, { timestamps: true });
+
 
 const UserFriendSchema = new mongoose.Schema({
     userId: {
@@ -151,26 +210,9 @@ MessageSchema.index({ createdAt: -1 });
 
 const NotificationSchema = new mongoose.Schema({
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    type: {
-      type: String,
-      enum: [
-        'FRIEND_REQUEST_ACCEPTED',
-        'FRIEND_REQUEST_REJECTED',
-        'NEW_FRIEND_REQUEST',
-        'FRIEND_REMOVED', 
-        'EVENT_CREATED',
-        'EVENT_INVITATION_ACCEPTED',
-        'EVENT_INVITATION_DECLINED',
-        'EVENT_UPDATED',
-        'EVENT_CANCELLED'
-      ],
-      required: true
-    },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event' },
     message: { type: String, required: true },
-    read: { type: Boolean, default: false },
-    status: { type: String, enum: ['PENDING', 'SENT'], default: 'PENDING' },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -181,6 +223,7 @@ UserSchema.index({ email: 1, username: 1 });
 NotificationSchema.index({ recipient: 1, read: 1 });
 NotificationSchema.index({ recipient: 1, createdAt: -1 });
 NotificationSchema.index({ type: 1, status: 1 });
+EventSchema.index({ 'suggestedLocations.location': '2dsphere' });
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);

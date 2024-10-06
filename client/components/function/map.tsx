@@ -2,12 +2,14 @@ import { memo, useState, useEffect, useRef } from "react";
 import { NavigationControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { OlaMaps } from "../OlaMapsWebSDK/olamaps-js-sdk.es";
+import { color } from "framer-motion";
 
 // Define the types for the props
 interface Location {
     name: string;
     longitude: number;
     latitude: number;
+    color?: string;
 }
 
 interface MapComponentProps {
@@ -57,12 +59,12 @@ const MapComponent: React.FC<MapComponentProps> = memo(({ height = "100%", width
 
         mapInstance.current.fitBounds(bounds, { padding: 50 });
 
-        locations.forEach(({ name, longitude, latitude }) => {
+        locations.forEach(({ name, longitude, latitude, color }) => {
             const popup = olaMaps.addPopup({ offset: [0, -30], anchor: 'bottom' })
                 .setHTML(`<div style="color: black;">${name}</div>`);
 
             olaMaps
-                .addMarker({ offset: [0, 0], anchor: "bottom" })
+                .addMarker({ offset: [0, 0], anchor: "bottom", color: `${color? color: 'red'}` })
                 .setLngLat([longitude, latitude])
                 .setPopup(popup)
                 .addTo(mapInstance.current);

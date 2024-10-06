@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/authContext";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 const darkMode = true;
@@ -21,7 +22,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class">
           <AuthProvider>
-          {children}
+            <Suspense>
+              {children}
+            </Suspense>
           </AuthProvider>
         </ThemeProvider>
       </body>

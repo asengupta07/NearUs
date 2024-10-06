@@ -3,12 +3,14 @@
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import { UserSchema, EventSchema, UserEventSchema } from '@/app/_models/schema';
+import connectToDatabase from '@/app/_middleware/mongodb';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);
 const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserEventSchema);
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+    await connectToDatabase();
     try {
         const eventId = params.id;
 
