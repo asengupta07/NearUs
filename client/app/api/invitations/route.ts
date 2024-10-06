@@ -1,7 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import { UserSchema, EventSchema, UserEventSchema, UserFriendSchema } from '@/app/_models/schema';
-import { createNotification } from '@/helpers/notificationHelper'; 
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);

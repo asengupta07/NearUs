@@ -1,21 +1,38 @@
+export interface NotificationSender {
+    id: string;
+    username: string;
+    email: string;
+    avatarUrl: string;
+}
+
 export interface Notification {
     id: string;
-    type: string;
+    type: 'NEW_FRIEND_REQUEST' | 'FRIEND_REQUEST_ACCEPTED' | 'FRIEND_REQUEST_REJECTED' | 'FRIEND_REQUEST_REMOVED' | 'EVENT_CREATED' | 'EVENT_INVITATION_ACCEPTED' | 'EVENT_INVITATION_DECLINED' | 'EVENT_UPDATED' | 'EVENT_CANCELLED';
     message: string;
-    sender: {
-        username: string;
+    sender: NotificationSender;
+    event?: {
         id: string;
-    };
-    eventId?: string;
+        name: string;
+        date: string;
+        location: string;
+    } | null;
+    createdAt: Date;
     read: boolean;
     status: 'PENDING' | 'SENT';
-    createdAt: string;
 }
 
 export interface NotificationResponse {
     message: string;
     modifiedCount?: number;
     deletedCount?: number;
+}
+
+export interface Event {
+    id: string;
+    title: string;
+    location: string;
+    date: string;
+    friends: string[];
 }
 
 export interface DashboardData {
@@ -25,10 +42,14 @@ export interface DashboardData {
     notifications: Notification[];
 }
 
-export interface Event {
+// New Message interface
+export interface Message {
     id: string;
-    title: string;
-    location: string;
-    date: string;
-    friends: string[];
+    content: string;
+    timestamp: Date;
+    sender: {
+        id: string;
+        // username?: string;
+        // avatarUrl?: string;
+    };
 }

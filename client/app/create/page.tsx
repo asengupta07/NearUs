@@ -16,17 +16,18 @@ import Navbar from '@/components/function/Nav'
 import MapComponent from '@/components/function/map'
 import { useAuth } from '@/contexts/authContext'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 interface Friend {
     id: string;
     username: string;
     email: string;
     location: {
-      latitude: number;
-      longitude: number;
+        latitude: number;
+        longitude: number;
     };
     avatarUrl: string;
-  }
+}
 
 interface Location {
     name: string;
@@ -36,26 +37,26 @@ interface Location {
 
 const scrollbarStyles = `
 .custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+    width: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.5);
 }
 `;
 
@@ -74,6 +75,8 @@ export default function CreateNewPlan() {
 
     useEffect(() => {
         const fetchData = async () => {
+            if (!email) return;
+
             try {
                 const friendsResponse = await fetch('/api/friends', {
                     method: 'POST',
@@ -84,43 +87,36 @@ export default function CreateNewPlan() {
                         email: email,
                     }),
                 });
+                
                 if (!friendsResponse.ok) {
                     throw new Error('Failed to fetch friends')
                 }
+                
                 const friendsData = await friendsResponse.json();
-                console.log('friendsData: ', friendsData)
 
                 const locData = friendsData.friends.map((friend: Friend) => ({
                     name: friend.username,
                     longitude: friend.location.longitude,
                     latitude: friend.location.latitude,
                 }));
+                
                 const myLocation = {
                     name: 'You',
                     longitude: friendsData.me.location.longitude,
                     latitude: friendsData.me.location.latitude
                 }
                 locData.push(myLocation)
-
-                console.log('locData: ', locData)
-
                 
                 setDisplayLocations(locData)
                 setFriends(friendsData.friends);
-                console.log('locdata2: ', displayLocations)
             } catch (error) {
                 console.error('Error fetching data:', error);
+                toast.error('Failed to fetch friends data. Please try again.')
             }
         };
-        if (email) {
-            fetchData();
-            console.log('data: ', displayLocations)
-        }
-    }, [email]);
 
-    useEffect(() => {
-        console.log('displayLocations: ', displayLocations)
-    }, [displayLocations])
+        fetchData();
+    }, [email]);
 
     const handleFriendSelection = (friendId: string) => {
         setSelectedFriends(prev =>
@@ -132,7 +128,14 @@ export default function CreateNewPlan() {
 
     const handleCreatePlan = async (e: React.FormEvent) => {
         e.preventDefault()
+        
+        if (!planName || !selectedFriends.length || !selectedDate || !selectedLocationPreference) {
+            toast.error('Please fill in all required fields')
+            return
+        }
+    
         setIsLoading(true)
+        
         try {
             // Create the plan
             const response = await fetch('/api/create-plan', {
@@ -149,44 +152,54 @@ export default function CreateNewPlan() {
                     creatorEmail: email,
                 }),
             })
+            
             if (!response.ok) {
                 throw new Error('Failed to create plan')
             }
+            
             const data = await response.json()
-            console.log('Plan created:', data)
-
-            // Send notifications to invited friends
-            const notificationPromises = selectedFriends.map(async (friendId) => {
-                const notificationResponse = await fetch('/api/notifications', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        recipient: friendId,
-                        type: 'EVENT_INVITATION',
-                        sender: email, // Assuming the logged-in user's email is the sender
-                        eventId: data.eventId, // Assuming the create-plan API returns the new event's ID
-                        message: `You've been invited to ${planName}!`,
-                    }),
-                })
-                if (!notificationResponse.ok) {
-                    console.error(`Failed to send notification to friend ${friendId}`)
+    
+            // Send notifications sequentially
+            for (const friendId of selectedFriends) {
+                try {
+                    const notificationResponse = await fetch('/api/notifications', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            recipient: friendId, // Keep using friendId as the recipient
+                            type: 'EVENT_CREATED',
+                            sender: email, // Use the creator's email as the sender
+                            eventId: data.event._id,
+                            message: `You've been invited to ${planName}!`,
+                        }),
+                    })
+    
+                    if (!notificationResponse.ok) {
+                        const errorData = await notificationResponse.json()
+                        console.error('Notification error:', errorData)
+                        throw new Error(errorData.message || 'Failed to send notification')
+                    }
+                } catch (notifError) {
+                    console.error(`Error sending notification to friend ${friendId}:`, notifError)
+                    toast.error(`Failed to send notification to a friend. They may not receive an invite.`)
                 }
-            })
-
-            await Promise.all(notificationPromises)
-
-            // Reset form or navigate to a success page
+            }
+    
+            toast.success('Plan created successfully!')
+            
+            // Reset form and redirect
             setPlanName('')
             setSelectedFriends([])
             setSelectedDate(new Date())
             setSelectedTime('12:00')
             setSelectedLocationPreference('')
             router.push('/events')
-
+    
         } catch (error) {
             console.error('Error creating plan:', error)
+            toast.error('Failed to create plan. Please try again.')
         } finally {
             setIsLoading(false)
         }
@@ -225,6 +238,7 @@ export default function CreateNewPlan() {
                                             className="mt-1 bg-gray-800 text-white border-gray-700"
                                             value={planName}
                                             onChange={(e) => setPlanName(e.target.value)}
+                                            required
                                         />
                                     </div>
                                     <div>
@@ -298,6 +312,7 @@ export default function CreateNewPlan() {
                                                         value={selectedDate?.toISOString().split('T')[0]}
                                                         onChange={(e) => setSelectedDate(new Date(e.target.value))}
                                                         className="bg-gray-800 text-white border-gray-700"
+                                                        required
                                                     />
                                                 </div>
                                             </div>
@@ -311,6 +326,7 @@ export default function CreateNewPlan() {
                                                         value={selectedTime}
                                                         onChange={(e) => setSelectedTime(e.target.value)}
                                                         className="bg-gray-800 text-white border-gray-700"
+                                                        required
                                                     />
                                                 </div>
                                             </div>

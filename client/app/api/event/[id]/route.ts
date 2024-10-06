@@ -11,7 +11,6 @@ const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserE
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         const eventId = params.id;
-        // console.log('Fetching event data for event:', eventId);
 
         const event = await Event.findById(eventId);
         if (!event) {
@@ -19,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         }
 
         const userEvents = await UserEvent.find({ eventId })
-            .populate('userId', 'username email location');
+            .populate('userId', 'username email location avatarUrl');
 
         const attendees = userEvents.map(ue => ({
             id: ue.userId._id.toString(),
@@ -29,11 +28,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
                 latitude: ue.userId.location.coordinates[1],
                 longitude: ue.userId.location.coordinates[0]
             },
-            avatarUrl: `/api/avatar/${ue.userId.username}`, // Assuming you have an avatar API
+            avatarUrl: ue.userId.avatarUrl || '',
             isAttending: ue.status === 'Going',
-            flexibility: ue.flexibility? ue.flexibility : 2
+            flexibility: ue.flexibility || 2
         }));
-        // // console.log('Fetched event data:', event, attendees, userEvents);
         console.log('Fetched event data:', userEvents);
 
         const resp = {

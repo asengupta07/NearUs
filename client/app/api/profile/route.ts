@@ -2,10 +2,11 @@
 
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
-import { UserSchema } from '@/app/_models/schema';
+import { UserSchema,UserFriendSchema} from '@/app/_models/schema';
 
 // Initialize the User model
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
+const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
 
 export async function POST(request: Request) {
     try {
@@ -23,14 +24,9 @@ export async function POST(request: Request) {
         // Prepare update data
         const updateData: any = { ...updates };
 
-        // Explicitly handle avatarUrl
-        console.log('Received avatarUrl:', avatarUrl);
         if (avatarUrl !== undefined) {
             updateData.avatarUrl = avatarUrl;
-            console.log('Setting avatarUrl in updateData:', updateData.avatarUrl);
-        } else {
-            console.log('No avatarUrl received or avatarUrl is undefined');
-        }
+        } 
 
         // Handle location update
         if (location) {
@@ -44,13 +40,9 @@ export async function POST(request: Request) {
         // Remove any undefined values from the update data
         Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
-        // Log the current user data before the update
-        const currentUser = await User.findOne({ email }).lean();
-        console.log('Current user data:', JSON.stringify(currentUser, null, 2));
-
         // Updating user with new data
         const updatedUser = await User.findOneAndUpdate(
-            { email },  // Find the user by email
+            { email },  
             {
                 $set: updateData 
             },
@@ -62,11 +54,13 @@ export async function POST(request: Request) {
             console.log('User not found:', email);
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
-        
-        console.log('Updated user from database:', JSON.stringify(updatedUser.toObject(), null, 2));
 
         // Prepare the response
-        const friendCount = updatedUser.friends ? updatedUser.friends.length : 0;
+        const friendCount = await UserFriend.countDocuments({
+            userId: updatedUser._id,
+            status: 'Accepted'
+        });
+
         const response = {
             username: updatedUser.username,
             email: updatedUser.email,

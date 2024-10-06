@@ -129,6 +129,26 @@ const UserEventSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
+const MessageSchema = new mongoose.Schema({
+    content: {
+        type: String,
+        required: true,
+    },
+    senderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
+    receiverId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
+}, { timestamps: true });
+
+MessageSchema.index({ senderId: 1, receiverId: 1 });
+MessageSchema.index({ createdAt: -1 });
+
 const NotificationSchema = new mongoose.Schema({
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     type: {
@@ -137,6 +157,7 @@ const NotificationSchema = new mongoose.Schema({
         'FRIEND_REQUEST_ACCEPTED',
         'FRIEND_REQUEST_REJECTED',
         'NEW_FRIEND_REQUEST',
+        'FRIEND_REMOVED', 
         'EVENT_CREATED',
         'EVENT_INVITATION_ACCEPTED',
         'EVENT_INVITATION_DECLINED',
@@ -166,6 +187,8 @@ const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);
 const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
 const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserEventSchema);
 const Notification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
+const Message = mongoose.models.Message || mongoose.model('Message', MessageSchema);
+
 
 export {
     UserSchema,
@@ -173,9 +196,11 @@ export {
     UserFriendSchema,
     UserEventSchema,
     NotificationSchema,
+    MessageSchema,
     User,
     Event,
     UserFriend,
     UserEvent,
-    Notification
+    Notification,
+    Message
 };

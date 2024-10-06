@@ -14,64 +14,117 @@ interface DashboardRequestBody {
     email: string;
 }
 
+interface EventData {
+    id: string;
+    title: string;
+    location: string;
+    date: string;
+    friends: string[];
+}
+
+interface NotificationData {
+    id: string;
+    message: string;
+    type: string;
+    sender: {
+        id: string;
+        username: string;
+        email: string;
+        avatarUrl: string;
+    } | null;
+    event: {
+        id: string;
+        name: string;
+        date: string;
+        location: string;
+    } | null;
+    createdAt: string;
+    read: boolean;
+    status: string;
+}
+
+interface DashboardData {
+    upcomingEvents: EventData[];
+    pastEvents: EventData[];
+    friends: string[];
+    notifications: NotificationData[];
+}
+
 async function handler(req: NextRequest) {
     if (req.method !== 'POST') {
         return NextResponse.json({ message: 'Method Not Allowed' }, { status: 405 });
     }
 
-    let body;
+    let body: DashboardRequestBody;
     try {
         body = await req.json();
     } catch (error) {
         return NextResponse.json({ message: 'Invalid JSON' }, { status: 400 });
     }
 
-    const { email }: DashboardRequestBody = body;
+    const { email } = body;
 
     if (!email) {
-        return NextResponse.json({ message: 'Please fill all fields' }, { status: 400 });
+        return NextResponse.json({ message: 'Please provide an email address' }, { status: 400 });
     }
 
     try {
-        // Find the user
         const user = await User.findOne({ email });
+        console.log('Looking up user with email:', email);
         console.log('Found user:', user?._id);
 
         if (!user) {
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
 
-        // Get user's friends
+        // Get user's active friends (only those with 'Accepted' status)
         const userFriends = await UserFriend.find({ 
             userId: user._id, 
             status: 'Accepted' 
         }).populate('friendId', 'username');
+        
         const friends = userFriends.map(uf => uf.friendId.username);
+        console.log('Found friends:', friends.length);
 
-        // Get notifications with full sender information
+        // Get notifications with enhanced query to include all notification types
         const notifications = await Notification.find({
             recipient: user._id,
-            status: 'SENT'  // Only fetch sent notifications
+            type: {
+                $in: [
+                    'FRIEND_REQUEST_ACCEPTED',
+                    'FRIEND_REQUEST_REJECTED',
+                    'NEW_FRIEND_REQUEST',
+                    'FRIEND_REMOVED',
+                    'EVENT_CREATED',
+                    'EVENT_INVITATION_ACCEPTED',
+                    'EVENT_INVITATION_DECLINED',
+                    'EVENT_UPDATED',
+                    'EVENT_CANCELLED'
+                ]
+            }
         })
         .populate('sender', 'username email avatarUrl')
         .populate('eventId', 'eventName eventDate location')
         .sort({ createdAt: -1 })
         .limit(10);
 
-        console.log('Found notifications for user:', user._id, notifications.length);
+        console.log('Found notifications:', notifications.length);
 
-        const formattedNotifications = notifications.map(notification => ({
+        // Format notifications with consistent structure
+        const formattedNotifications: NotificationData[] = notifications.map(notification => ({
             id: notification._id.toString(),
             message: notification.message,
             type: notification.type,
             sender: notification.sender ? {
+                id: notification.sender._id.toString(),
                 username: notification.sender.username,
                 email: notification.sender.email,
                 avatarUrl: notification.sender.avatarUrl
             } : null,
             event: notification.eventId ? {
+                id: notification.eventId._id.toString(),
                 name: notification.eventId.eventName,
-                date: notification.eventId.eventDate,
+                date: notification.eventId.eventDate.toISOString(),
                 location: notification.eventId.location
             } : null,
             createdAt: notification.createdAt.toISOString(),
@@ -81,6 +134,7 @@ async function handler(req: NextRequest) {
 
         console.log('Formatted notifications:', formattedNotifications);
 
+        // Get user's events
         const currentDate = new Date();
         const userEvents = await UserEvent.find({ 
             userId: user._id, 
@@ -94,17 +148,20 @@ async function handler(req: NextRequest) {
             }
         });
 
-        const upcomingEvents = [];
-        const pastEvents = [];
+        console.log('Found user events:', userEvents.length);
+
+        // Sort events into upcoming and past
+        const upcomingEvents: EventData[] = [];
+        const pastEvents: EventData[] = [];
 
         for (const userEvent of userEvents) {
             const event = userEvent.eventId;
-            const eventData = {
+            const eventData: EventData = {
                 id: event._id.toString(),
                 title: event.eventName,
                 location: event.location,
                 date: event.eventDate.toISOString().split('T')[0],
-                friends: event.attendees.map((attendee: { username: any; }) => attendee.username)
+                friends: event.attendees.map((attendee: { username: string }) => attendee.username)
             };
 
             if (event.eventDate > currentDate) {
@@ -114,22 +171,32 @@ async function handler(req: NextRequest) {
             }
         }
 
+        // Sort events by date
         upcomingEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         pastEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        const dashboardData = {
+        // Compile dashboard data
+        const dashboardData: DashboardData = {
             upcomingEvents,
             pastEvents,
             friends,
             notifications: formattedNotifications
         };
 
+        console.log('Returning dashboard data with:', {
+            upcomingEventsCount: upcomingEvents.length,
+            pastEventsCount: pastEvents.length,
+            friendsCount: friends.length,
+            notificationsCount: formattedNotifications.length
+        });
+
         return NextResponse.json(dashboardData, { status: 200 });
     } catch (error) {
         console.error('Dashboard API error:', error);
         return NextResponse.json({ 
             message: 'Internal Server Error', 
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
         }, { status: 500 });
     }
 }

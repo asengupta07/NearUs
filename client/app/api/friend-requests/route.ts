@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     await connectDB();
     const body = await req.json();
-    const { email, requestId, action, senderEmail, receiverId } = body;
+    const { senderEmail, receiverId, email, requestId, action } = body;
 
     // Handle accepting or rejecting a friend request
     if (email && requestId && action) {
@@ -157,7 +157,15 @@ export async function POST(req: NextRequest) {
             });
             await newFriendRequest.save();
             // Create a NEW_FRIEND_REQUEST notification
-            const notification = new Notification({
+            const senderNotification = new Notification({
+                recipient: sender._id,
+                type: 'FRIEND_REQUEST_SENT',
+                sender: sender._id,
+                message: `You sent a friend request to ${receiver.username}`,
+                read: false,
+                status: 'PENDING'
+            });
+            const receiverNotification = new Notification({
                 recipient: receiver._id,
                 type: 'NEW_FRIEND_REQUEST',
                 sender: sender._id,
@@ -165,7 +173,7 @@ export async function POST(req: NextRequest) {
                 read: false,
                 status: 'PENDING'
             });
-            await notification.save();
+            await Promise.all([senderNotification.save(), receiverNotification.save()]);
             return NextResponse.json({ message: 'Friend request sent successfully' }, { status: 200 });
         } catch (error) {
             console.error('Send Friend Request API Error:', error);

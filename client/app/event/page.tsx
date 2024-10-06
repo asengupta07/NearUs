@@ -16,6 +16,7 @@ import Navbar from '@/components/function/Nav'
 import MapComponent from '@/components/function/map'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/authContext'
+import { Notification } from '@/types'
 
 interface Attendee {
     id: string;
@@ -71,6 +72,7 @@ export default function EventPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [searchResults, setSearchResults] = useState<Location[]>([])
     const { email } = useAuth()
+    const [notifications, setNotifications] = useState<Notification[]>([])
 
     useEffect(() => {
         const fetchEventData = async () => {
@@ -78,7 +80,7 @@ export default function EventPage() {
                 const response = await fetch(`/api/event/${eventId}`)
                 if (!response.ok) throw new Error('Failed to fetch event data')
                 const data = await response.json()
-                console.log('recieved data', data)
+                console.log('received data', data)
                 setEventDetails(data.eventDetails)
                 setAttendees(data.attendees)
             } catch (error) {
@@ -87,6 +89,28 @@ export default function EventPage() {
         }
         fetchEventData()
     }, [eventId])
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!email) {
+                console.error('User email is not available');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/notifications?userId=${encodeURIComponent(email)}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                if (!response.ok) throw new Error('Failed to fetch notifications');
+                const data: Notification[] = await response.json(); // Type assertion here
+                setNotifications(data);
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+            }
+        };
+
+        fetchNotifications();
+    }, [email]);
 
     useEffect(() => {
         console.log('Attendees:', attendees)
@@ -142,7 +166,7 @@ export default function EventPage() {
     return (
         <>
             <style>{scrollbarStyles}</style>
-            <Navbar notifications={[]} />
+            <Navbar notifications={notifications} />
             <div className="custom-scrollbar relative min-h-[200vh] w-full bg-gray-950 text-white overflow-hidden">
                 <div className="absolute inset-0 max-w-4xl mx-auto w-full overflow-y-auto">
                     <motion.div

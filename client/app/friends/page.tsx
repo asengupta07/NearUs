@@ -166,7 +166,6 @@ export default function AddFriends() {
             })
             if (!response.ok) throw new Error('Search failed')
             const data = await response.json()
-            // Add requestStatus property to each user
             const usersWithRequestStatus: UserWithRequestStatus[] = data.map((user: User) => ({
                 ...user,
                 requestStatus: 'none'
@@ -189,7 +188,6 @@ export default function AddFriends() {
             setPendingRequests(data);
         } catch (error) {
             console.error('Error fetching pending requests:', error);
-            // You might want to show an error message to the user here
         }
     };
 
@@ -206,11 +204,13 @@ export default function AddFriends() {
             if (!response.ok) {
                 throw new Error('Failed to accept all friend requests');
             }
-            setPendingRequests([]);     
-            fetchFriends();       
+            setPendingRequests([]);
+            fetchFriends();
+            fetchNotifications(); 
+            toast.success('All friend requests accepted successfully!');
         } catch (error) {
             console.error('Error accepting all friend requests:', error);
-            // You might want to show an error message to the user here
+            toast.error('Failed to accept all friend requests. Please try again.');
         }
     };
 
@@ -227,14 +227,14 @@ export default function AddFriends() {
             if (!response.ok) {
                 throw new Error('Failed to reject all friend requests');
             }
-            // Clear all pending requests
             setPendingRequests([]);
+            fetchNotifications();
+            toast.success('All friend requests rejected successfully!');
         } catch (error) {
             console.error('Error rejecting all friend requests:', error);
-            // You might want to show an error message to the user here
+            toast.error('Failed to reject all friend requests. Please try again.');
         }
     };
-
 
     const handleSendRequest = async (userId: string) => {
         const userToUpdate = searchResults.find(user => user.id === userId);
@@ -249,7 +249,7 @@ export default function AddFriends() {
         }
     
         try {
-            const response = await fetch('/api/send-request', {
+            const response = await fetch('/api/friend-requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -259,12 +259,12 @@ export default function AddFriends() {
             });
             
             const data = await response.json();
-            console.log(response)
             if (response.ok) {
                 toast.success(data.message || 'Friend request sent successfully!');
                 setSearchResults(prev => prev.map(user => 
                     user.id === userId ? { ...user, requestStatus: 'sent' } : user
                 ));
+                fetchNotifications();
             } else if (response.status === 409) {
                 toast(data.message || 'Friend request already exists', {
                     icon: '🔔',
@@ -292,14 +292,20 @@ export default function AddFriends() {
                     friendId: friendId 
                 }),
             });
+            
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to remove friend');
             }
+            
             setFriends(prev => prev.filter(friend => friend.id !== friendId));
+            toast.success('Friend removed successfully');
+            
+            // Fetch updated notifications after friend removal
+            fetchNotifications();
         } catch (error) {
             console.error('Error removing friend:', error);
-            // You might want to show an error message to the user here
+            toast.error('Failed to remove friend. Please try again.');
         }
     };
 
@@ -490,10 +496,6 @@ export default function AddFriends() {
                                                 </div>
                                             </div>
                                             <div className="flex space-x-2">
-                                                <Button variant="outline" size="sm">
-                                                    <MessageCircle className="mr-2 h-4 w-4" />
-                                                    Message
-                                                </Button>
                                                 <Button variant="outline" size="sm" onClick={() => handleRemoveFriend(friend.id)}>
                                                     <UserMinus className="mr-2 h-4 w-4" />
                                                     Remove
