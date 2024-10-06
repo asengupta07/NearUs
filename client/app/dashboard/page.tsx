@@ -238,7 +238,7 @@ const Dashboard: React.FC = () => {
             <div className="text-2xl">🦗🦗🦗</div>
             <h3 className="text-md font-semibold mb-2">Cricket Chirps...</h3>
             <p className="text-gray-400 mb-4">
-                It's so quiet here, you can hear the crickets! Time to stir things up and create some excitement!
+                It is so quiet here, you can hear the crickets! Time to stir things up and create some excitement!
             </p>
             {/* <Button
                 onClick={createTestNotification}

@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { EventSchema } from '@/app/_models/schema';
 import connectToDatabase from '@/app/_middleware/mongodb';
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     try {

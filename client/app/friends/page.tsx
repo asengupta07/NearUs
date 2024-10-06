@@ -522,7 +522,7 @@ export default function AddFriends() {
                     <Card className="bg-gray-900 border-none mt-auto">
                         <CardContent className="p-6">
                             <p className="text-center text-gray-400">
-                                Can't find who you're looking for?{' '}
+                                Cannot find who you are looking for?{' '}
                                 <Link href="/invite" className="text-purple-400 hover:underline">
                                     Invite your friends
                                 </Link>{' '}

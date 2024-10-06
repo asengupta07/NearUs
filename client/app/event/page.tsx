@@ -126,7 +126,9 @@ export default function EventPage() {
     useEffect(() => {
         const fetchSuggestedSpots = async () => {
             try {
-                const response = await fetch(`/api/suggested-places?eventId=${eventId}`)
+                const response = await fetch(`/api/suggested-places?eventId=${eventId}`,
+                    { method: 'POST' }
+                )
                 if (!response.ok) throw new Error('Failed to fetch suggested spots')
                 const data = await response.json()
                 setSuggestedSpots(data.suggestedSpots)
@@ -317,7 +319,7 @@ export default function EventPage() {
                     <Card className="bg-gray-900 border-none mb-6">
                         <CardHeader>
                             <CardTitle className="text-2xl font-bold text-white">Your Flexibility</CardTitle>
-                            <p>Flexibility represents how far you're willing to travel from your preferred location.</p>
+                            <p>Flexibility represents how far you are willing to travel from your preferred location.</p>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
@@ -330,7 +332,7 @@ export default function EventPage() {
                                                     <Info className="w-4 h-4 text-gray-400" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    <p>Flexibility represents how far you're willing to travel from your preferred location.</p>
+                                                    <p>Flexibility represents how far you are willing to travel from your preferred location.</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
@@ -520,7 +522,7 @@ export default function EventPage() {
                                 </div>
                                 {!canSuggestPlaces && (
                                     <p className="text-yellow-400 text-sm">
-                                        Warning: Not all attendees' flexibilities overlap. We may not be able to suggest optimal places.
+                                        Warning: Not all attendees&apos; flexibilities overlap. We may not be able to suggest optimal places.
                                     </p>
                                 )}
                                 {searchResults.length > 0 && (
