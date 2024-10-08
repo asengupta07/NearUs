@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import Navbar from '@/components/function/Nav'
 import { useAuth } from '@/contexts/authContext'
 import { Notification } from '@/types'
+import LoadingState from '@/components/LoadingState/LoadingState'
 
 interface Profile {
     username: string;
@@ -35,6 +36,7 @@ export default function ProfilePage() {
     const [editedProfile, setEditedProfile] = useState<Profile | null>(null)
     const [isUploading, setIsUploading] = useState(false)
     const [notifications, setNotifications] = useState<Notification[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const { email } = useAuth()
 
     useEffect(() => {
@@ -57,6 +59,8 @@ export default function ProfilePage() {
             setEditedProfile(data);
         } catch (error) {
             console.error('Error fetching profile:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -167,7 +171,6 @@ export default function ProfilePage() {
         }
     };
     
-    // Add this helper function (the provided one) outside of handleSaveProfile
     const updateProfile = async (updatedProfile: Partial<Profile>) => {
         const response = await fetch('/api/profile', {
             method: 'POST',
@@ -182,6 +185,10 @@ export default function ProfilePage() {
         const data = await response.json();
         return data;
     };
+
+    if (isLoading) {
+        return <LoadingState message="Loading your profile..." submessage="Preparing your personal information" />
+    }
 
     if (!profile) return null
 

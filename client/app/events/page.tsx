@@ -12,6 +12,7 @@ import Navbar from '@/components/function/Nav'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/authContext'
 import { useRouter } from 'next/navigation'
+import LoadingState from '@/components/LoadingState/LoadingState'
 
 interface Event {
     id: string;
@@ -115,12 +116,10 @@ const EventsPage: React.FC = () => {
     
             const updatedInvitation = await response.json();
             
-            // Remove the handled invitation from the state
             setInvitations(prevInvitations =>
                 prevInvitations.filter(inv => inv.id !== invitationId)
             );
     
-            // If accepted, add to upcoming events
             if (accept && updatedInvitation.id) {
                 setEventsData(prevData => ({
                     ...prevData,
@@ -187,7 +186,6 @@ const EventsPage: React.FC = () => {
     const EventList = ({ events, type }: { events: Event[], type: 'upcoming' | 'past' }) => (
         <motion.ul className="space-y-4">
             {events.map((event, index) => (
-                
                     <motion.li
                         key={event.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -252,11 +250,7 @@ const EventsPage: React.FC = () => {
     );
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-950 text-white">
-                <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-purple-500"></div>
-            </div>
-        );
+        return <LoadingState message="Loading your events..." submessage="Preparing your upcoming and past events" />
     }
 
     if (error) {

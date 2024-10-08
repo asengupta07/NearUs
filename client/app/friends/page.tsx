@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, UserPlus, UserCheck, Loader2, UserMinus, MessageCircle, CheckCircle, XCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -14,6 +14,7 @@ import Navbar from '@/components/function/Nav'
 import { useAuth } from '@/contexts/authContext'
 import { toast } from 'react-hot-toast'
 import { Notification } from '@/types'
+import LoadingState from '@/components/LoadingState/LoadingState'
 
 interface User {
     id: string;
@@ -40,13 +41,27 @@ export default function AddFriends() {
     const [notifications, setNotifications] = useState<Notification[]>([])
     const { email } = useAuth()
 
+    const [isLoading, setIsLoading] = useState(true)
+
     useEffect(() => {
         if (email) {
-            fetchFriends()
-            fetchPendingRequests()
-            fetchNotifications()
+            fetchInitialData()
         }
     }, [email])
+
+    const fetchInitialData = async () => {
+        try {
+            await Promise.all([
+                fetchFriends(),
+                fetchPendingRequests(),
+                fetchNotifications()
+            ])
+        } catch (error) {
+            console.error('Error fetching initial data:', error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     const fetchNotifications = async () => {
         try {
@@ -309,6 +324,10 @@ export default function AddFriends() {
         }
     };
 
+    if (isLoading) {
+        return <LoadingState message="Loading your friends..." submessage="Preparing your friend list and requests" />
+    }
+
     return (
         <>
             <Navbar notifications={notifications} />
@@ -381,6 +400,7 @@ export default function AddFriends() {
                                                             <UserPlus className="mr-2 h-4 w-4" />
                                                             Add Friend
                                                         </>
+                                
                                                     ) : user.requestStatus === 'sent' || user.requestStatus === 'pending' ? (
                                                         <>
                                                             <UserCheck className="mr-2 h-4 w-4" />
@@ -522,7 +542,7 @@ export default function AddFriends() {
                     <Card className="bg-gray-900 border-none mt-auto">
                         <CardContent className="p-6">
                             <p className="text-center text-gray-400">
-                                Cannot find who you are looking for?{' '}
+                                Can't find who you're looking for?{' '}
                                 <Link href="/invite" className="text-purple-400 hover:underline">
                                     Invite your friends
                                 </Link>{' '}

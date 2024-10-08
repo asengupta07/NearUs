@@ -43,10 +43,15 @@ interface NotificationData {
     status: string;
 }
 
+interface FriendData {
+    username: string;
+    avatarUrl: string;
+}
+
 interface DashboardData {
     upcomingEvents: EventData[];
     pastEvents: EventData[];
-    friends: string[];
+    friends: FriendData[];  
     notifications: NotificationData[];
 }
 
@@ -81,9 +86,12 @@ async function handler(req: NextRequest) {
         const userFriends = await UserFriend.find({ 
             userId: user._id, 
             status: 'Accepted' 
-        }).populate('friendId', 'username');
+        }).populate('friendId', 'username avatarUrl');
         
-        const friends = userFriends.map(uf => uf.friendId.username);
+        const friends = userFriends.map(uf => ({
+            username: uf.friendId.username,
+            avatarUrl: uf.friendId.avatarUrl
+        }));        
         console.log('Found friends:', friends.length);
 
         // Get notifications with enhanced query to include all notification types

@@ -121,7 +121,7 @@ async function posthandler(req: NextRequest) {
                 sender: user._id,
                 eventId: event._id,
                 message: `A new location "${place.name}" has been suggested for ${event.eventName}`,
-                type: 'locationSuggestion'
+                type: 'locationSuggestion' 
             }));
 
         if (attendeeNotifications.length > 0) {

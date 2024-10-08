@@ -68,9 +68,11 @@ export async function POST(req: NextRequest) {
 
         const newNotification = new Notification({
             recipient: recipientUser._id,
+            type,
             sender: senderUser._id,
             eventId,
             message,
+            status: 'SENT'
         });
 
         await newNotification.save();
