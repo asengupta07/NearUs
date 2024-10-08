@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import Navbar from '@/components/function/Navbar'
 import { useAuth } from '@/contexts/authContext'
 import { Eye, EyeOff, Mail, User, Lock, Loader2 } from 'lucide-react'
+import LoadingState from '@/components/LoadingState/LoadingState'
 
 const inputVariants = {
   focus: { scale: 1.05, transition: { type: 'spring', stiffness: 300, damping: 10 } },
@@ -33,6 +34,7 @@ export default function AuthPage() {
     const [error, setError] = useState<string>("");
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [pageLoading, setPageLoading] = useState(true);
 
     const [formData, setFormData] = useState({
         email: "",
@@ -61,12 +63,17 @@ export default function AuthPage() {
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude
                     });
+                    setPageLoading(false);
                 },
                 (error) => {
                     console.error("Error getting location:", error);
                     setError("Location access is required. Please enable location services.");
+                    setPageLoading(false);
                 }
             );
+        } else {
+            setError("Geolocation is not supported by this browser.");
+            setPageLoading(false);
         }
     }, []);
 
@@ -161,8 +168,12 @@ export default function AuthPage() {
         }
     };
 
+    if (pageLoading) {
+        return <LoadingState message="Preparing authentication..." submessage="Setting up secure login" />
+    }
+
     return (
-        <div className="min-h-screen bg-black"> {/* Changed background to black */}
+        <div className="min-h-screen bg-black">
             <Navbar />
             <div className="relative flex min-h-[calc(100vh-64px)] w-full items-center justify-center overflow-hidden">
                 <motion.div
@@ -334,7 +345,7 @@ export default function AuthPage() {
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowPassword(!showPassword)}
-                                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                                                        className="absolute right-3 top-1/2 transform  -translate-y-1/2 text-gray-400"
                                                     >
                                                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                     </button>

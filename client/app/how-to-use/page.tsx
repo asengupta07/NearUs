@@ -1,11 +1,24 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { BackgroundBeams } from '@/components/ui/background-beams'
 import Navbar from '@/components/function/Navbar'
 import { FaMapMarkerAlt, FaUsers, FaRoute } from 'react-icons/fa'
+import LoadingState from '@/components/LoadingState/LoadingState'
 
 export default function HowToUse() {
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate loading delay
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 1500)
+
+    return () => clearTimeout(timer)
+  }, [])
+
   const steps = [
     {
       icon: <FaUsers className="text-4xl text-purple-500" />,
@@ -23,6 +36,10 @@ export default function HowToUse() {
       description: "NearUs calculates the perfect meetup spot for everyone."
     }
   ]
+
+  if (isLoading) {
+    return <LoadingState message="Loading How to Use..." submessage="Preparing your guide to NearUs" />
+  }
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gray-950 text-white">

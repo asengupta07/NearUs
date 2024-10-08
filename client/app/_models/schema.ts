@@ -201,6 +201,17 @@ const MessageSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
+const InviteSchema = new mongoose.Schema({
+    code: { type: String, required: true, unique: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    expiresAt: { type: Date, required: true },
+    isUsed: { type: Boolean, default: false },
+    usedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    usedAt: { type: Date }
+}, { timestamps: true });
+
+const Invite = mongoose.models.Invite || mongoose.model('Invite', InviteSchema);
+
 MessageSchema.index({ senderId: 1, receiverId: 1 });
 MessageSchema.index({ createdAt: -1 });
 
@@ -258,5 +269,7 @@ export {
     UserFriend,
     UserEvent,
     Notification,
-    Message
+    Message,
+    InviteSchema,
+    Invite
 };

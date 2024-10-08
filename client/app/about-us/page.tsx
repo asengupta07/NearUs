@@ -1,10 +1,27 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { BackgroundBeams } from '@/components/ui/background-beams'
 import Navbar from '@/components/function/Navbar'
+import LoadingState from '@/components/LoadingState/LoadingState'
 
 export default function AboutUs() {
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate loading delay
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 1500)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (isLoading) {
+    return <LoadingState message="Loading About Us..." submessage="Preparing our story for you" />
+  }
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gray-950 text-white">
       <Navbar />

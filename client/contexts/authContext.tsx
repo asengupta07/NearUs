@@ -1,12 +1,8 @@
 "use client";
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import Cookies from "js-cookie";
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   token: string | null;
@@ -34,6 +30,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const router = useRouter();
 
   const login = (token: string, email: string, username: string) => {
     setToken(token);
@@ -42,6 +39,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     Cookies.set("token", token, { expires: 7 });
     Cookies.set("email", email, { expires: 7 });
     Cookies.set("username", username, { expires: 7 });
+    const pendingInviteCode = sessionStorage.getItem('pendingInviteCode');
+    if (pendingInviteCode) {
+      sessionStorage.removeItem('pendingInviteCode');
+      router.push(`/join/${pendingInviteCode}`);
+    } else {
+      router.push('/dashboard');
+    }
   };
 
   const logout = () => {
@@ -51,6 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     Cookies.remove("token");
     Cookies.remove("email");
     Cookies.remove("username");
+    router.push('/auth');
   };
 
   useEffect(() => {

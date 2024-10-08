@@ -17,6 +17,7 @@ import MapComponent from '@/components/function/map'
 import { useAuth } from '@/contexts/authContext'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import LoadingState from '@/components/LoadingState/LoadingState'
 
 interface Friend {
     id: string;
@@ -72,10 +73,14 @@ export default function CreateNewPlan() {
     const { email } = useAuth()
     const [displayLocations, setDisplayLocations] = useState<Location[]>([])
     const locationPreferences = ['Cafes', 'Parks', 'Restaurants', 'Malls', 'Cinemas', 'Bars']
+    const [pageLoading, setPageLoading] = useState(true)
 
     useEffect(() => {
         const fetchData = async () => {
-            if (!email) return;
+            if (!email) {
+                setPageLoading(false)
+                return
+            }
 
             try {
                 const friendsResponse = await fetch('/api/friends', {
@@ -112,6 +117,8 @@ export default function CreateNewPlan() {
             } catch (error) {
                 console.error('Error fetching data:', error);
                 toast.error('Failed to fetch friends data. Please try again.')
+            } finally {
+                setPageLoading(false)
             }
         };
 
@@ -203,6 +210,10 @@ export default function CreateNewPlan() {
         } finally {
             setIsLoading(false)
         }
+    }
+
+    if (pageLoading) {
+        return <LoadingState message="Preparing to create a new plan..." submessage="Loading your friends and preferences" />
     }
 
     return (

@@ -1,11 +1,24 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { BackgroundBeams } from '@/components/ui/background-beams'
 import Navbar from '@/components/function/Navbar'
 import { FaMapMarkedAlt, FaClock, FaUserFriends, FaStore, FaCar, FaLock } from 'react-icons/fa'
+import LoadingState from '@/components/LoadingState/LoadingState'
 
 export default function Features() {
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate loading delay
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 1500)
+
+    return () => clearTimeout(timer)
+  }, [])
+
   const features = [
     {
       icon: <FaMapMarkedAlt className="text-4xl text-purple-500" />,
@@ -38,6 +51,10 @@ export default function Features() {
       description: "Robust privacy settings to control who sees your location and when."
     }
   ]
+
+  if (isLoading) {
+    return <LoadingState message="Loading Features..." submessage="Preparing our amazing features for you" />
+  }
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gray-950 text-white">
