@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, ChangeEvent } from 'react'
-import { Edit2, Save, Camera, MapPin, Mail, User, Loader2, LogOut, Navigation, FileText } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Edit2, Save, Camera, MapPin, Mail, User, Loader2, LogOut, Navigation, FileText, Trash2 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,6 +17,7 @@ import { Notification } from '@/types'
 import LoadingState from '@/components/LoadingState/LoadingState'
 import { redirect } from 'next/navigation'
 import { Textarea } from "@/components/ui/textarea"
+import { motion } from 'framer-motion'
 
 interface Profile {
   username: string;
@@ -39,6 +40,18 @@ export default function Component() {
   const [isGettingLocation, setIsGettingLocation] = useState(false)
   const [locationType, setLocationType] = useState<'manual' | 'coordinates'>('manual')
   const { email, logout } = useAuth()
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isRemovingAvatar, setIsRemovingAvatar] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
 
   useEffect(() => {
     if (email) {
@@ -113,11 +126,9 @@ export default function Component() {
 
       if (data.avatarUrl) {
         console.log('Updating profile with new avatar:', data.avatarUrl);
-        // Update local state
         setProfile(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : null);
         setEditedProfile(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : null);
 
-        // Save the updated profile to the server
         const updatedProfile = await handleSaveProfile({ avatarUrl: data.avatarUrl });
         if (updatedProfile) {
           console.log('Profile updated with new avatar:', JSON.stringify(updatedProfile, null, 2));
@@ -141,7 +152,6 @@ export default function Component() {
       const updatedProfile = {
         ...editedProfile,
         ...updatedData,
-        // Include both location name and coordinates in the update
         location: editedProfile.location,
         coordinates: editedProfile.coordinates
       };
@@ -165,21 +175,6 @@ export default function Component() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const updateProfile = async (updatedProfile: Partial<Profile>) => {
-    const response = await fetch('/api/profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedProfile),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to update profile');
-    }
-
-    const data = await response.json();
-    return data;
   };
 
   const handleLogout = () => {
@@ -206,7 +201,6 @@ export default function Component() {
 
       const { latitude, longitude } = position.coords;
 
-      // Get location name from coordinates using reverse geocoding
       const response = await fetch(
         `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=YOUR_API_KEY`
       );
@@ -228,6 +222,39 @@ export default function Component() {
     }
   };
 
+  const handleRemoveAvatar = async () => {
+    if (!email) return;
+
+    setIsRemovingAvatar(true);
+
+    try {
+      const response = await fetch('/api/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove avatar');
+      }
+
+      const data = await response.json();
+
+      // Update the profile with the default avatar URL or null
+      setProfile(prev => prev ? { ...prev, avatarUrl: '' } : null);
+      setEditedProfile(prev => prev ? { ...prev, avatarUrl: '' } : null);
+
+      const updatedProfile = await handleSaveProfile({ avatarUrl: '' });
+      if (updatedProfile) {
+        console.log('Profile updated after avatar removal');
+      }
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+    } finally {
+      setIsRemovingAvatar(false);
+    }
+  };
+
   if (isLoading) {
     return <LoadingState message="Loading your profile..." submessage="Preparing your personal information" />
   }
@@ -235,19 +262,39 @@ export default function Component() {
   if (!profile) return null
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="relative min-h-screen w-full overflow-hidden bg-gray-950 text-white">
       <Navbar notifications={notifications} />
-      <div className="relative pt-16 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="relative z-20 max-w-4xl mx-auto">
-          <header className="text-center mb-12">
-            <h1 className="text-6xl font-extrabold mb-4 tracking-tight">
-              <span className="inline-block bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient-x">
-                Your Profile
-              </span>
-            </h1>
-            <p className="text-gray-400 text-xl">Manage your personal information</p>
-          </header>
+      <div className="relative z-20 flex min-h-[calc(100vh-64px)] flex-col items-center justify-center px-4 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="mb-12 w-full max-w-4xl text-center"
+        >
+          <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+            <motion.span
+              className={cn(
+                "bg-gradient-to-r from-cyan-400 via-purple-500 to-yellow-500 bg-clip-text text-transparent",
+                "animate-text-gradient"
+              )}
+              initial={{ backgroundPosition: '0% 50%' }}
+              animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+            >
+              Your Profile
+            </motion.span>
+          </h1>
+          <p className="text-lg text-gray-300 sm:text-xl md:max-w-lg mx-auto">
+            Manage your personal information
+          </p>
+        </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="w-full max-w-4xl"
+        >
           <Card className="rounded-3xl shadow-2xl border border-gray-800 bg-gray-900/90 backdrop-blur-sm transition-all duration-300 hover:shadow-purple-500/10">
             <CardHeader className="flex flex-row items-center justify-between p-8 border-b border-gray-800">
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
@@ -260,16 +307,29 @@ export default function Component() {
                       <Button
                         onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
                         disabled={isSaving}
-                        className="bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 hover:from-cyan-600 hover:via-purple-700 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-purple-500/20 text-white font-semibold px-6 py-3 rounded-full"
+                        className="group relative inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
                       >
-                        {isSaving ? (
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        ) : isEditing ? (
-                          <Save className="mr-2 h-5 w-5" />
-                        ) : (
-                          <Edit2 className="mr-2 h-5 w-5" />
-                        )}
-                        {isEditing ? 'Save Changes' : 'Edit Profile'}
+                        <motion.span
+                          className="absolute inset-[-1000%] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]"
+                          animate={{
+                            rotate: 360,
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "linear",
+                          }}
+                        />
+                        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-4 py-1 text-sm font-medium text-white backdrop-blur-3xl transition-colors hover:bg-slate-900/80">
+                          {isSaving ? (
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          ) : isEditing ? (
+                            <Save className="mr-2 h-5 w-5" />
+                          ) : (
+                            <Edit2 className="mr-2 h-5 w-5" />
+                          )}
+                          {isEditing ? 'Save Changes' : 'Edit Profile'}
+                        </span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -282,10 +342,24 @@ export default function Component() {
                     <TooltipTrigger asChild>
                       <Button
                         onClick={handleLogout}
-                        className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-red-500/20 text-white font-semibold px-6 py-3 rounded-full"
+                        className="group relative inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
                       >
-                        <LogOut className="mr-2 h-5 w-5" />
-                        Logout
+                        <motion.span
+                          className="absolute inset-[-1000%] bg-[conic-gradient(from_90deg_at_50%_50%,#FF6B6B_0%,#FF8E53_50%,#FF6B6B_100%)]"
+                          animate={{
+                            rotate: 360,
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "linear",
+                
+                          }}
+                        />
+                        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-4 py-1 text-sm font-medium text-white backdrop-blur-3xl transition-colors hover:bg-slate-900/80">
+                          <LogOut className="mr-2 h-5 w-5" />
+                          Logout
+                        </span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -296,41 +370,68 @@ export default function Component() {
               </div>
             </CardHeader>
             <CardContent className="p-8">
-              <div className="flex flex-col md:flex-row items-center md:items-start space-y-8 md:space-y-0 md:space-x-12">
-                <div className="relative group">
+              <div className="flex flex-col md:flex-row md:items-center">
+                <div className="relative group flex items-center justify-center w-full md:w-auto md:mr-12">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
                   <Avatar className="relative w-48 h-48 rounded-full border-4 border-purple-600/50">
                     <AvatarImage src={profile.avatarUrl} alt={profile.username} className="object-cover" />
-                    <AvatarFallback className="text-5xl bg-gradient-to-br from-cyan-500 via-purple-600 to-pink-500 text-white">{profile.username[0]}</AvatarFallback>
+                    <AvatarFallback className="text-5xl bg-gradient-to-br from-cyan-500 via-purple-600 to-pink-500 text-white">
+                      {profile.username[0]}
+                    </AvatarFallback>
                   </Avatar>
                   {isEditing && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <label className="absolute bottom-2 right-2 p-3 bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 rounded-full cursor-pointer hover:from-cyan-600 hover:via-purple-700 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-purple-500/20">
-                            {isUploading ? (
-                              <Loader2 className="h-6 w-6 animate-spin text-white" />
-                            ) : (
-                              <Camera className="h-6 w-6 text-white" />
-                            )}
-                            <input
-                              type="file"
-                              className="hidden"
-                              accept="image/*"
-                              onChange={handleUploadAvatar}
-                              disabled={isUploading}
-                            />
-                          </label>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Upload new avatar</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 flex gap-4">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <label className="w-12 h-12 flex items-center justify-center bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 rounded-full cursor-pointer hover:from-cyan-600 hover:via-purple-700 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-purple-500/20">
+                              {isUploading ? (
+                                <Loader2 className="h-6 w-6 animate-spin text-white" />
+                              ) : (
+                                <Camera className="h-6 w-6 text-white" />
+                              )}
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleUploadAvatar}
+                                disabled={isUploading}
+                              />
+                            </label>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Upload new avatar</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      {profile.avatarUrl && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={handleRemoveAvatar}
+                                disabled={isRemovingAvatar}
+                                className="w-12 h-12 p-0 flex items-center justify-center bg-gradient-to-r from-red-500 to-red-600 rounded-full hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-red-500/20"
+                              >
+                                {isRemovingAvatar ? (
+                                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                                ) : (
+                                  <Trash2 className="h-6 w-6 text-white" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Remove avatar</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   )}
                 </div>
-                <div className="flex-1 space-y-8">
-                  <div className="text-center md:text-left space-y-2">
+                <div className="flex-1 space-y-8 mt-20 md:mt-0">
+                  <div className="space-y-2">
                     <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500">
                       {profile.username}
                     </h2>
@@ -351,10 +452,10 @@ export default function Component() {
                             ...prev,
                             username: e.target.value
                           } : null)}
-                          className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 transition-colors text-lg py-3"
+                          className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 transition-colors text-lg py-3 text-left"
                         />
                       ) : (
-                        <p className="text-gray-200 text-xl pl-7">{profile.username}</p>
+                        <p className="text-gray-200 text-xl text-left">{profile.username}</p>
                       )}
                     </div>
 
@@ -363,7 +464,7 @@ export default function Component() {
                         <Mail className="h-5 w-5 text-purple-400" />
                         Email
                       </Label>
-                      <p className="text-gray-200 text-xl pl-7">{profile.email}</p>
+                      <p className="text-gray-200 text-xl text-left">{profile.email}</p>
                     </div>
 
                     <div className="space-y-4">
@@ -382,10 +483,10 @@ export default function Component() {
                             prev ? { ...prev, bio: e.target.value } : null
                           )}
                           placeholder="Tell us about yourself..."
-                          className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 min-h-[120px] resize-none"
+                          className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 min-h-[120px] resize-none text-left"
                         />
                       ) : (
-                        <div className="pl-7">
+                        <div className="text-left">
                           {profile.bio ? (
                             <p className="text-gray-200 text-xl whitespace-pre-wrap">
                               {profile.bio}
@@ -410,7 +511,7 @@ export default function Component() {
                             value={locationType}
                             onValueChange={(value: 'manual' | 'coordinates') => setLocationType(value)}
                           >
-                            <SelectTrigger className="w-full bg-gray-800/50 text-gray-200 border-gray-700">
+                            <SelectTrigger className="w-full bg-gray-800/50 text-gray-200 border-gray-700 text-left">
                               <SelectValue placeholder="Select location type" />
                             </SelectTrigger>
                             <SelectContent>
@@ -429,7 +530,7 @@ export default function Component() {
                                 coordinates: undefined
                               } : null)}
                               placeholder="Enter your location (e.g., New York, London)"
-                              className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600"
+                              className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 text-left"
                             />
                           ) : (
                             <div className="flex gap-4 items-center">
@@ -437,7 +538,7 @@ export default function Component() {
                                 value={editedProfile?.coordinates || ''}
                                 readOnly
                                 placeholder="Click the button to get your current location"
-                                className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 flex-1"
+                                className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 flex-1 text-left"
                               />
                               <TooltipProvider>
                                 <Tooltip>
@@ -463,7 +564,7 @@ export default function Component() {
                           )}
                         </div>
                       ) : (
-                        <p className="text-gray-200 text-xl pl-7">
+                        <p className="text-gray-200 text-xl text-left">
                           {profile?.location}
                           {profile?.coordinates && (
                             <span className="text-sm text-gray-400 block">
@@ -478,9 +579,15 @@ export default function Component() {
               </div>
             </CardContent>
           </Card>
-        </div>
-        <BackgroundBeams />
+        </motion.div>
       </div>
+      <BackgroundBeams className="opacity-50" />
+      <motion.div
+        className="pointer-events-none absolute inset-0 z-30"
+        animate={{
+          background: `radial-gradient(600px at ${mousePosition.x}px ${mousePosition.y}px, rgba(29, 78, 216, 0.15), transparent 80%)`
+        }}
+      />
     </div>
   )
 }

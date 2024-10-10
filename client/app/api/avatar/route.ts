@@ -17,6 +17,17 @@ interface CloudinaryError {
     http_code?: number;
 }
 
+// Helper function to extract public_id from Cloudinary URL
+function getPublicIdFromUrl(url: string): string | null {
+    try {
+        const matches = url.match(/\/avatars\/([^/]+)\./);
+        return matches ? `avatars/${matches[1]}` : null;
+    } catch (error) {
+        console.error('Error extracting public_id:', error);
+        return null;
+    }
+}
+
 export async function POST(request: Request) {
     console.log('Received avatar upload request');
     try {
@@ -24,7 +35,67 @@ export async function POST(request: Request) {
         await connectToDatabase();
         const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
-        // Process form data
+        // Check if this is a remove request
+        const contentType = request.headers.get('content-type');
+        if (contentType === 'application/json') {
+            // Handle avatar removal
+            const { email } = await request.json();
+            
+            console.log('Received avatar removal request for:', email);
+
+            if (!email) {
+                return NextResponse.json(
+                    { message: 'Email is required' },
+                    { status: 400 }
+                );
+            }
+
+            // Find user and get current avatar URL
+            const user = await User.findOne({ email }).select('avatarUrl');
+            
+            if (!user) {
+                return NextResponse.json(
+                    { message: 'User not found' },
+                    { status: 404 }
+                );
+            }
+
+            if (user.avatarUrl) {
+                // Extract public_id from the Cloudinary URL
+                const publicId = getPublicIdFromUrl(user.avatarUrl);
+                
+                if (publicId) {
+                    try {
+                        // Delete image from Cloudinary
+                        await cloudinary.uploader.destroy(publicId);
+                        console.log('Successfully deleted image from Cloudinary:', publicId);
+                    } catch (error) {
+                        console.error('Error deleting image from Cloudinary:', error);
+                        // Continue with user update even if Cloudinary delete fails
+                    }
+                }
+            }
+
+            // Update user to remove avatar URL
+            const updatedUser = await User.findOneAndUpdate(
+                { email },
+                { 
+                    $set: { 
+                        avatarUrl: '',
+                        updatedAt: new Date() 
+                    } 
+                },
+                { new: true }
+            ).select('avatarUrl email username');
+
+            return NextResponse.json({
+                success: true,
+                message: 'Avatar removed successfully',
+                user: updatedUser
+            });
+        }
+
+        // Handle avatar upload (existing code)
         const formData = await request.formData();
         const email = formData.get('email') as string;
         const avatarFile = formData.get('avatar') as File | null;
@@ -47,6 +118,22 @@ export async function POST(request: Request) {
                 { message: 'File size must be less than 5MB' }, 
                 { status: 400 }
             );
+        }
+
+        // Get current user to check if they have an existing avatar
+        const existingUser = await User.findOne({ email }).select('avatarUrl');
+        if (existingUser?.avatarUrl) {
+            const publicId = getPublicIdFromUrl(existingUser.avatarUrl);
+            if (publicId) {
+                try {
+                    // Delete old image from Cloudinary
+                    await cloudinary.uploader.destroy(publicId);
+                    console.log('Successfully deleted old image from Cloudinary:', publicId);
+                } catch (error) {
+                    console.error('Error deleting old image from Cloudinary:', error);
+                    // Continue with upload even if delete fails
+                }
+            }
         }
 
         // Convert file to base64
