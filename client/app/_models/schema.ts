@@ -184,22 +184,33 @@ const UserEventSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
-const MessageSchema = new mongoose.Schema({
+const ChatMessageSchema = new mongoose.Schema({
+    sender: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    recipient: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     content: {
         type: String,
-        required: true,
+        required: true
     },
-    senderId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
+    timestamp: {
+        type: Date,
+        default: Date.now
     },
-    receiverId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
-    },
+    read: {
+        type: Boolean,
+        default: false
+    }
 }, { timestamps: true });
+
+ChatMessageSchema.index({ sender: 1, recipient: 1 });
+ChatMessageSchema.index({ timestamp: -1 });
 
 const InviteSchema = new mongoose.Schema({
     code: { type: String, required: true, unique: true },
@@ -211,9 +222,6 @@ const InviteSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const Invite = mongoose.models.Invite || mongoose.model('Invite', InviteSchema);
-
-MessageSchema.index({ senderId: 1, receiverId: 1 });
-MessageSchema.index({ createdAt: -1 });
 
 const NotificationSchema = new mongoose.Schema({
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -255,7 +263,7 @@ const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);
 const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
 const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserEventSchema);
 const Notification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
-const Message = mongoose.models.Message || mongoose.model('Message', MessageSchema);
+const ChatMessage = mongoose.models.ChatMessage || mongoose.model('ChatMessage', ChatMessageSchema);
 
 export {
     UserSchema,
@@ -263,13 +271,13 @@ export {
     UserFriendSchema,
     UserEventSchema,
     NotificationSchema,
-    MessageSchema,
+    ChatMessageSchema,
     User,
     Event,
     UserFriend,
     UserEvent,
     Notification,
-    Message,
+    ChatMessage,
     InviteSchema,
     Invite
 };

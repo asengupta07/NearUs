@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ably-labs/react-hooks": "^2.1.2",
     "@nextui-org/navbar": "^2.0.36",
     "@prisma/client": "^5.20.0",
     "@radix-ui/react-avatar": "^1.1.0",
@@ -29,6 +30,7 @@
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/mongoose": "^5.11.97",
+    "ably": "^2.4.1",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "cloudinary": "^2.5.0",
@@ -53,12 +55,13 @@
     "socket.io": "^1.5.1",
     "socket.io-client": "^4.8.0",
     "sonner": "^1.5.0",
-    "tailwind-merge": "^2.5.2",
+    "tailwind-merge": "^2.5.3",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.168.0",
     "three-globe": "^2.31.1"
   },
   "devDependencies": {
+    "@types/ably": "^1.0.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

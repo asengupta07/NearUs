@@ -15,12 +15,14 @@ import { useAuth } from '@/contexts/authContext'
 import { toast } from 'react-hot-toast'
 import { Notification } from '@/types'
 import LoadingState from '@/components/LoadingState/LoadingState'
+import FriendProfileModal from '@/components/function/FriendProfileModal'
 
 interface User {
     id: string;
     name: string;
     username: string;
     avatarUrl: string;
+    bio: string;
 }
 
 interface UserWithRequestStatus extends User {
@@ -40,14 +42,15 @@ export default function AddFriends() {
     const [friends, setFriends] = useState<User[]>([])
     const [notifications, setNotifications] = useState<Notification[]>([])
     const { email } = useAuth()
-
+    const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         if (email) {
-            fetchInitialData()
+            fetchInitialData();
         }
-    }, [email])
+    }, [email]);
 
     const fetchInitialData = async () => {
         try {
@@ -75,13 +78,13 @@ export default function AddFriends() {
             console.error('Error fetching notifications:', error);
         }
     };
-    
+
     const updateNotification = async (notificationId: string, action: 'markAsRead' | 'delete') => {
         try {
             const response = await fetch('/api/update-notification', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     notificationIds: [notificationId],
                     action: action
                 }),
@@ -101,7 +104,7 @@ export default function AddFriends() {
             const response = await fetch('/api/friend-requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     email,
                     requestId,
                     action: 'accept'
@@ -116,7 +119,7 @@ export default function AddFriends() {
             setPendingRequests(prev => prev.filter(request => request.id !== requestId));
             fetchFriends();
             fetchNotifications();
-            
+
             // Update the notification related to this friend request
             const relatedNotification = notifications.find(n => n.type === 'NEW_FRIEND_REQUEST' && n.sender.id === requestId);
             if (relatedNotification) {
@@ -133,7 +136,7 @@ export default function AddFriends() {
             const response = await fetch('/api/friend-requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     email,
                     requestId,
                     action: 'reject'
@@ -143,7 +146,7 @@ export default function AddFriends() {
                 throw new Error('Failed to reject friend request');
             }
             setPendingRequests(prev => prev.filter(request => request.id !== requestId));
-            
+
             // Update the notification related to this friend request
             const relatedNotification = notifications.find(n => n.type === 'NEW_FRIEND_REQUEST' && n.sender.id === requestId);
             if (relatedNotification) {
@@ -153,18 +156,29 @@ export default function AddFriends() {
             console.error('Error rejecting friend request:', error);
             toast.error('Failed to reject friend request. Please try again.');
         }
-    };    
+    };
 
     const fetchFriends = async () => {
         try {
-            const response = await fetch('/api/friends', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+            const response = await fetch(`/api/friends?email=${email}`, {
+                method: 'GET',
             });
             if (!response.ok) throw new Error('Failed to fetch friends');
             const data = await response.json();
-            setFriends(data.friends);
+
+            if (!data.friends || !Array.isArray(data.friends)) {
+                console.error("Unexpected data structure:", data);
+                return;
+            }
+
+            const mappedFriends = data.friends.map((friend: any) => ({
+                id: friend.id || friend._id,
+                username: friend.username,
+                avatarUrl: friend.avatarUrl,
+                bio: friend.bio
+            }));
+
+            setFriends(mappedFriends);
         } catch (error) {
             console.error('Error fetching friends:', error);
         }
@@ -183,7 +197,8 @@ export default function AddFriends() {
             const data = await response.json()
             const usersWithRequestStatus: UserWithRequestStatus[] = data.map((user: User) => ({
                 ...user,
-                requestStatus: 'none'
+                requestStatus: 'none',
+                bio: user.bio
             }))
             setSearchResults(usersWithRequestStatus)
         } catch (error) {
@@ -211,7 +226,7 @@ export default function AddFriends() {
             const response = await fetch('/api/friend-requests', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     email,
                     action: 'acceptAll'
                 }),
@@ -221,7 +236,7 @@ export default function AddFriends() {
             }
             setPendingRequests([]);
             fetchFriends();
-            fetchNotifications(); 
+            fetchNotifications();
             toast.success('All friend requests accepted successfully!');
         } catch (error) {
             console.error('Error accepting all friend requests:', error);
@@ -234,7 +249,7 @@ export default function AddFriends() {
             const response = await fetch('/api/friend-requests', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     email,
                     action: 'rejectAll'
                 }),
@@ -254,7 +269,7 @@ export default function AddFriends() {
     const handleSendRequest = async (userId: string) => {
         const userToUpdate = searchResults.find(user => user.id === userId);
         if (!userToUpdate) return;
-    
+
         if (userToUpdate.requestStatus !== 'none') {
             toast('Friend request already sent or pending.', {
                 icon: '🔔',
@@ -262,21 +277,21 @@ export default function AddFriends() {
             });
             return;
         }
-    
+
         try {
             const response = await fetch('/api/friend-requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     senderEmail: email,
-                    receiverId: userId 
+                    receiverId: userId
                 }),
             });
-            
+
             const data = await response.json();
             if (response.ok) {
                 toast.success(data.message || 'Friend request sent successfully!');
-                setSearchResults(prev => prev.map(user => 
+                setSearchResults(prev => prev.map(user =>
                     user.id === userId ? { ...user, requestStatus: 'sent' } : user
                 ));
                 fetchNotifications();
@@ -285,7 +300,7 @@ export default function AddFriends() {
                     icon: '🔔',
                     duration: 4000,
                 });
-                setSearchResults(prev => prev.map(user => 
+                setSearchResults(prev => prev.map(user =>
                     user.id === userId ? { ...user, requestStatus: 'pending' } : user
                 ));
             } else {
@@ -302,20 +317,20 @@ export default function AddFriends() {
             const response = await fetch('/api/remove-friend', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     userEmail: email,
-                    friendId: friendId 
+                    friendId: friendId
                 }),
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to remove friend');
             }
-            
+
             setFriends(prev => prev.filter(friend => friend.id !== friendId));
             toast.success('Friend removed successfully');
-            
+
             // Fetch updated notifications after friend removal
             fetchNotifications();
         } catch (error) {
@@ -369,56 +384,56 @@ export default function AddFriends() {
                     <AnimatePresence>
                         {searchResults.length > 0 && (
                             <motion.div>
-                            <Card className="bg-gray-900 border-none mb-8">
-                                <CardHeader>
-                                    <CardTitle className="text-white">Search Results</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <ul className="space-y-4">
-                                        {searchResults.map((user) => (
-                                            <motion.li
-                                                key={user.id}
-                                                className="flex items-center justify-between bg-gray-800 p-4 rounded-lg"
-                                            >
-                                                <div className="flex items-center space-x-4">
-                                                    <Avatar>
-                                                        <AvatarImage src={user.avatarUrl} alt={user.username} />
-                                                        <AvatarFallback>{user.username}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-semibold">{user.username}</p>
-                                                        <p className="text-sm text-gray-400">@{user.username}</p>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    onClick={() => handleSendRequest(user.id)}
-                                                    disabled={user.requestStatus !== 'none'}
-                                                    variant={user.requestStatus !== 'none' ? "secondary" : "default"}
+                                <Card className="bg-gray-900 border-none mb-8">
+                                    <CardHeader>
+                                        <CardTitle className="text-white">Search Results</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ul className="space-y-4">
+                                            {searchResults.map((user) => (
+                                                <motion.li
+                                                    key={user.id}
+                                                    className="flex items-center justify-between bg-gray-800 p-4 rounded-lg"
                                                 >
-                                                    {user.requestStatus === 'none' ? (
-                                                        <>
-                                                            <UserPlus className="mr-2 h-4 w-4" />
-                                                            Add Friend
-                                                        </>
-                                
-                                                    ) : user.requestStatus === 'sent' || user.requestStatus === 'pending' ? (
-                                                        <>
-                                                            <UserCheck className="mr-2 h-4 w-4" />
-                                                            Requested
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <UserCheck className="mr-2 h-4 w-4" />
-                                                            Friends
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </motion.li>
-                                        ))}
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
+                                                    <div className="flex items-center space-x-4">
+                                                        <Avatar>
+                                                            <AvatarImage src={user.avatarUrl} alt={user.username} />
+                                                            <AvatarFallback>{user.username}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-semibold">{user.username}</p>
+                                                            <p className="text-sm text-gray-400">@{user.username}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        onClick={() => handleSendRequest(user.id)}
+                                                        disabled={user.requestStatus !== 'none'}
+                                                        variant={user.requestStatus !== 'none' ? "secondary" : "default"}
+                                                    >
+                                                        {user.requestStatus === 'none' ? (
+                                                            <>
+                                                                <UserPlus className="mr-2 h-4 w-4" />
+                                                                Add Friend
+                                                            </>
+
+                                                        ) : user.requestStatus === 'sent' || user.requestStatus === 'pending' ? (
+                                                            <>
+                                                                <UserCheck className="mr-2 h-4 w-4" />
+                                                                Requested
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <UserCheck className="mr-2 h-4 w-4" />
+                                                                Friends
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </motion.li>
+                                            ))}
+                                        </ul>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
                         )}
                     </AnimatePresence>
 
@@ -435,7 +450,7 @@ export default function AddFriends() {
                             <p className="text-gray-400">Try a different search term or invite your friends to join!</p>
                         </motion.div>
                     )}
-                    
+
                     {pendingRequests.length > 0 && (
                         <Card className="bg-gray-900 border-none mb-8">
                             <CardHeader className="flex flex-row items-center justify-between">
@@ -503,7 +518,19 @@ export default function AddFriends() {
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: 20 }}
                                             transition={{ duration: 0.2 }}
-                                            className="flex items-center justify-between bg-gray-800 p-4 rounded-lg"
+                                            className="flex items-center justify-between bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
+                                            onClick={() => {
+                                                // Add debugging logs here
+                                                console.log('AddFriends - Clicking friend:', friend);
+                                                console.log('AddFriends - Friend data:', {
+                                                    id: friend.id,
+                                                    username: friend.username,
+                                                    bio: friend.bio,
+                                                    avatarUrl: friend.avatarUrl
+                                                });
+                                                setSelectedFriend(friend);
+                                                setIsProfileModalOpen(true);
+                                            }}
                                         >
                                             <div className="flex items-center space-x-4">
                                                 <Avatar>
@@ -516,7 +543,14 @@ export default function AddFriends() {
                                                 </div>
                                             </div>
                                             <div className="flex space-x-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleRemoveFriend(friend.id)}>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRemoveFriend(friend.id);
+                                                    }}
+                                                >
                                                     <UserMinus className="mr-2 h-4 w-4" />
                                                     Remove
                                                 </Button>
@@ -538,6 +572,15 @@ export default function AddFriends() {
                             )}
                         </CardContent>
                     </Card>
+
+                    <FriendProfileModal
+                        isOpen={isProfileModalOpen}
+                        onClose={() => {
+                            setIsProfileModalOpen(false);
+                            setSelectedFriend(null);
+                        }}
+                        friend={selectedFriend}
+                    />
 
                     <Card className="bg-gray-900 border-none mt-auto">
                         <CardContent className="p-6">
