@@ -191,18 +191,28 @@ export default function AddFriends() {
             const response = await fetch('/api/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: searchQuery }),
+                body: JSON.stringify({ 
+                    query: searchQuery,
+                    currentUserEmail: email
+                }),
             })
             if (!response.ok) throw new Error('Search failed')
             const data = await response.json()
-            const usersWithRequestStatus: UserWithRequestStatus[] = data.map((user: User) => ({
-                ...user,
-                requestStatus: 'none',
-                bio: user.bio
-            }))
+            
+            // Check if each user is already a friend
+            const usersWithRequestStatus: UserWithRequestStatus[] = data.map((user: User) => {
+                const isFriend = friends.some(friend => friend.id === user.id);
+                return {
+                    ...user,
+                    requestStatus: isFriend ? 'friends' : 'none',
+                    bio: user.bio || ''
+                };
+            });
+            
             setSearchResults(usersWithRequestStatus)
         } catch (error) {
             console.error('Error searching users:', error)
+            toast.error('Failed to search for users. Please try again.')
         } finally {
             setIsSearching(false)
         }
@@ -269,7 +279,16 @@ export default function AddFriends() {
     const handleSendRequest = async (userId: string) => {
         const userToUpdate = searchResults.find(user => user.id === userId);
         if (!userToUpdate) return;
-
+    
+        // Check if already friends
+        if (userToUpdate.requestStatus === 'friends') {
+            toast('You are already friends with this user!', {
+                icon: '👥',
+                duration: 4000,
+            });
+            return;
+        }
+    
         if (userToUpdate.requestStatus !== 'none') {
             toast('Friend request already sent or pending.', {
                 icon: '🔔',
@@ -277,7 +296,7 @@ export default function AddFriends() {
             });
             return;
         }
-
+    
         try {
             const response = await fetch('/api/friend-requests', {
                 method: 'POST',
@@ -287,7 +306,7 @@ export default function AddFriends() {
                     receiverId: userId
                 }),
             });
-
+    
             const data = await response.json();
             if (response.ok) {
                 toast.success(data.message || 'Friend request sent successfully!');
@@ -349,7 +368,7 @@ export default function AddFriends() {
             <div className="relative min-h-screen pt-8 w-full overflow-hidden bg-gray-950 text-white">
                 <div className="relative z-20 max-w-4xl mx-auto w-full flex-grow flex flex-col p-4 sm:p-6 lg:p-8">
                     <header className="text-center mb-8">
-                        <h1 className="text-4xl font-bold mb-2">
+                        <h1 className="text-3xl sm:text-4xl font-bold mb-2">
                             <span className={cn(
                                 "bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent",
                                 "animate-text-gradient"
@@ -357,15 +376,15 @@ export default function AddFriends() {
                                 Expand Your Circle
                             </span>
                         </h1>
-                        <p className="text-gray-400">Discover new friends and create amazing experiences together!</p>
+                        <p className="text-sm sm:text-base text-gray-400">Discover new friends and create amazing experiences together!</p>
                     </header>
 
                     <Card className="bg-gray-900 border-none mb-8">
                         <CardHeader>
-                            <CardTitle className="text-white">Search for Friends</CardTitle>
+                            <CardTitle className="text-white text-lg sm:text-xl">Search for Friends</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleSearch} className="flex gap-2">
+                            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
                                 <Input
                                     type="text"
                                     placeholder="Search by username"
@@ -373,7 +392,7 @@ export default function AddFriends() {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="flex-grow bg-gray-800 text-white border-gray-700"
                                 />
-                                <Button type="submit" disabled={isSearching}>
+                                <Button type="submit" disabled={isSearching} className="w-full sm:w-auto">
                                     {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                                     Search
                                 </Button>
@@ -384,18 +403,18 @@ export default function AddFriends() {
                     <AnimatePresence>
                         {searchResults.length > 0 && (
                             <motion.div>
-                                <Card className="bg-gray-900 border-none mb-8">
+                                <Card className="bg-gray-900  border-none mb-8">
                                     <CardHeader>
-                                        <CardTitle className="text-white">Search Results</CardTitle>
+                                        <CardTitle className="text-white text-lg sm:text-xl">Search Results</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <ul className="space-y-4">
                                             {searchResults.map((user) => (
                                                 <motion.li
                                                     key={user.id}
-                                                    className="flex items-center justify-between bg-gray-800 p-4 rounded-lg"
+                                                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-800 p-4 rounded-lg"
                                                 >
-                                                    <div className="flex items-center space-x-4">
+                                                    <div className="flex items-center space-x-4 mb-2 sm:mb-0">
                                                         <Avatar>
                                                             <AvatarImage src={user.avatarUrl} alt={user.username} />
                                                             <AvatarFallback>{user.username}</AvatarFallback>
@@ -405,29 +424,31 @@ export default function AddFriends() {
                                                             <p className="text-sm text-gray-400">@{user.username}</p>
                                                         </div>
                                                     </div>
-                                                    <Button
-                                                        onClick={() => handleSendRequest(user.id)}
-                                                        disabled={user.requestStatus !== 'none'}
-                                                        variant={user.requestStatus !== 'none' ? "secondary" : "default"}
-                                                    >
-                                                        {user.requestStatus === 'none' ? (
-                                                            <>
-                                                                <UserPlus className="mr-2 h-4 w-4" />
-                                                                Add Friend
-                                                            </>
-
-                                                        ) : user.requestStatus === 'sent' || user.requestStatus === 'pending' ? (
-                                                            <>
-                                                                <UserCheck className="mr-2 h-4 w-4" />
-                                                                Requested
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <UserCheck className="mr-2 h-4 w-4" />
-                                                                Friends
-                                                            </>
-                                                        )}
-                                                    </Button>
+                                                    {user.requestStatus === 'friends' ? (
+                                                        <div className="flex items-center space-x-2 mt-2 sm:mt-0">
+                                                            <UserCheck className="h-4 w-4 text-green-500" />
+                                                            <span className="text-green-500">Already Friends</span>
+                                                        </div>
+                                                    ) : (
+                                                        <Button
+                                                            onClick={() => handleSendRequest(user.id)}
+                                                            disabled={user.requestStatus !== 'none'}
+                                                            variant={user.requestStatus !== 'none' ? "secondary" : "default"}
+                                                            className="mt-2 sm:mt-0"
+                                                        >
+                                                            {user.requestStatus === 'none' ? (
+                                                                <>
+                                                                    <UserPlus className="mr-2 h-4 w-4" />
+                                                                    Add Friend
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <UserCheck className="mr-2 h-4 w-4" />
+                                                                    Requested
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    )}
                                                 </motion.li>
                                             ))}
                                         </ul>
@@ -443,18 +464,18 @@ export default function AddFriends() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 0.3 }}
-                            className="text-center p-8"
+                            className="text-center p-4 sm:p-8"
                         >
                             <p className="text-2xl mb-4">🔍</p>
                             <h2 className="text-xl font-semibold mb-2">No results found</h2>
-                            <p className="text-gray-400">Try a different search term or invite your friends to join!</p>
+                            <p className="text-sm sm:text-base text-gray-400">Try a different search term or invite your friends to join!</p>
                         </motion.div>
                     )}
 
                     {pendingRequests.length > 0 && (
                         <Card className="bg-gray-900 border-none mb-8">
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle className="text-white">Pending Requests</CardTitle>
+                            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                                <CardTitle className="text-white text-lg sm:text-xl mb-2 sm:mb-0">Pending Requests</CardTitle>
                                 <div className="flex space-x-2">
                                     <Button onClick={handleAcceptAllRequests} variant="outline" size="sm">
                                         <CheckCircle className="mr-2 h-4 w-4" />
@@ -475,9 +496,9 @@ export default function AddFriends() {
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: 20 }}
                                             transition={{ duration: 0.2 }}
-                                            className="flex items-center justify-between bg-gray-800 p-4 rounded-lg"
+                                            className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-800 p-4 rounded-lg"
                                         >
-                                            <div className="flex items-center space-x-4">
+                                            <div className="flex items-center space-x-4 mb-2 sm:mb-0">
                                                 <Avatar>
                                                     <AvatarImage src={request.sender.avatarUrl} alt={request.sender.name} />
                                                     <AvatarFallback>{request.sender.name[0]}</AvatarFallback>
@@ -487,7 +508,7 @@ export default function AddFriends() {
                                                     <p className="text-sm text-gray-400">@{request.sender.username}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex space-x-2">
+                                            <div className="flex space-x-2 mt-2 sm:mt-0">
                                                 <Button variant="outline" size="sm" onClick={() => handleAcceptRequest(request.id)}>
                                                     <CheckCircle className="mr-2 h-4 w-4" />
                                                     Accept
@@ -506,7 +527,7 @@ export default function AddFriends() {
 
                     <Card className="bg-gray-900 border-none mb-8">
                         <CardHeader>
-                            <CardTitle className="text-white">Your Friends</CardTitle>
+                            <CardTitle className="text-white text-lg sm:text-xl">Your Friends</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {friends.length > 0 ? (
@@ -518,9 +539,8 @@ export default function AddFriends() {
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: 20 }}
                                             transition={{ duration: 0.2 }}
-                                            className="flex items-center justify-between bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
+                                            className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
                                             onClick={() => {
-                                                // Add debugging logs here
                                                 console.log('AddFriends - Clicking friend:', friend);
                                                 console.log('AddFriends - Friend data:', {
                                                     id: friend.id,
@@ -532,7 +552,7 @@ export default function AddFriends() {
                                                 setIsProfileModalOpen(true);
                                             }}
                                         >
-                                            <div className="flex items-center space-x-4">
+                                            <div className="flex items-center space-x-4 mb-2 sm:mb-0">
                                                 <Avatar>
                                                     <AvatarImage src={friend.avatarUrl} alt={friend.username} />
                                                     <AvatarFallback>{friend.username[0]}</AvatarFallback>
@@ -542,7 +562,7 @@ export default function AddFriends() {
                                                     <p className="text-sm text-gray-400">@{friend.username}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex space-x-2">
+                                            <div className="flex space-x-2 mt-2 sm:mt-0">
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
@@ -563,11 +583,11 @@ export default function AddFriends() {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3 }}
-                                    className="text-center p-8"
+                                    className="text-center p-4 sm:p-8"
                                 >
                                     <p className="text-2xl mb-4">👥</p>
                                     <h2 className="text-xl font-semibold mb-2">No friends yet</h2>
-                                    <p className="text-gray-400">Start adding friends to see them here!</p>
+                                    <p className="text-sm sm:text-base text-gray-400">Start adding friends to see them here!</p>
                                 </motion.div>
                             )}
                         </CardContent>
@@ -583,8 +603,8 @@ export default function AddFriends() {
                     />
 
                     <Card className="bg-gray-900 border-none mt-auto">
-                        <CardContent className="p-6">
-                            <p className="text-center text-gray-400">
+                        <CardContent className="p-4 sm:p-6">
+                            <p className="text-center text-sm sm:text-base text-gray-400">
                                 Can't find who you're looking for?{' '}
                                 <Link href="/invite" className="text-purple-400 hover:underline">
                                     Invite your friends

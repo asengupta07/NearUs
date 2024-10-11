@@ -8,6 +8,7 @@ const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
 interface SearchRequestBody {
     query: string;
+    currentUserEmail: string;  // Added this field
 }
 
 async function handler(req: NextRequest) {
@@ -22,17 +23,26 @@ async function handler(req: NextRequest) {
         return NextResponse.json({ message: 'Invalid JSON' }, { status: 400 });
     }
 
-    const { query }: SearchRequestBody = body;
+    const { query, currentUserEmail }: SearchRequestBody = body;
 
     if (!query) {
         return NextResponse.json({ message: 'Search query is required' }, { status: 400 });
     }
 
+    if (!currentUserEmail) {
+        return NextResponse.json({ message: 'Current user email is required' }, { status: 400 });
+    }
+
     try {
-        const users = await User.find(
-            { $text: { $search: query } },
-            { score: { $meta: 'textScore' } }
-        )
+        // Modified query to exclude the current user
+        const users = await User.find({
+            $and: [
+                { $text: { $search: query } },
+                { email: { $ne: currentUserEmail } }  // Exclude current user
+            ]
+        }, {
+            score: { $meta: 'textScore' }
+        })
         .select('_id username email avatarUrl')
         .sort({ score: { $meta: 'textScore' } })
         .limit(10)

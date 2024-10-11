@@ -2,13 +2,17 @@ import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import { UserSchema, EventSchema, UserEventSchema, UserFriendSchema } from '@/app/_models/schema';
 
-// Define the types for the events and response data
+interface Friend {
+    username: string;
+    avatarUrl: string;
+}
+
 interface EventData {
     id: string;
     title: string;
     location: string;
     date: string;
-    friends: string[];
+    friends: Friend[];
 }
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
@@ -20,29 +24,16 @@ export async function POST(req: NextRequest) {
     try {
         const { email } = await req.json();
 
-        // Find the user
         const user = await User.findOne({ email });
         if (!user) {
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
 
-        // Find all events the user is attending
         const userEvents = await UserEvent.find({ userId: user._id, status: 'Going' });
         const eventIds = userEvents.map(ue => ue.eventId);
 
-        // Find all events
         const events = await Event.find({ _id: { $in: eventIds } }).sort({ eventDate: 1 });
 
-        // Get user's friends
-        const friendships = await UserFriend.find({ 
-            $or: [{ userId: user._id }, { friendId: user._id }],
-            status: 'Accepted'
-        });
-        const friendIds = friendships.map(f => 
-            f.userId.equals(user._id) ? f.friendId : f.userId
-        );
-
-        // Prepare the response data with explicit types
         const currentDate = new Date();
         const upcomingEvents: EventData[] = [];
         const pastEvents: EventData[] = [];
@@ -56,13 +47,15 @@ export async function POST(req: NextRequest) {
                 friends: []
             };
 
-            // Find friends attending this event
             const attendingFriends = await UserEvent.find({
                 eventId: event._id,
                 status: 'Going'
-            }).populate('userId', 'username');
+            }).populate('userId', 'username avatarUrl');
 
-            eventData.friends = attendingFriends.map(ue => ue.userId.username);
+            eventData.friends = attendingFriends.map(ue => ({
+                username: ue.userId.username,
+                avatarUrl: ue.userId.avatarUrl || ''
+            }));
 
             if (event.eventDate > currentDate) {
                 upcomingEvents.push(eventData);

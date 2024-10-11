@@ -83,14 +83,11 @@ export default function CreateNewPlan() {
             }
 
             try {
-                const friendsResponse = await fetch('/api/friends', {
-                    method: 'POST',
+                const friendsResponse = await fetch(`/api/friends?email=${encodeURIComponent(email)}`, {
+                    method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        email: email,
-                    }),
                 });
                 
                 if (!friendsResponse.ok) {

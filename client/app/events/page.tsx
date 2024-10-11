@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, MapPin, UserPlus, Check, X } from 'lucide-react'
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BackgroundBeams } from '@/components/ui/background-beams'
@@ -19,7 +19,12 @@ interface Event {
     title: string;
     location: string;
     date: string;
-    friends: string[];
+    friends: Friend[];
+}
+
+interface Friend {
+    username: string;
+    avatarUrl: string;
 }
 
 interface Invitation extends Event {
@@ -186,34 +191,36 @@ const EventsPage: React.FC = () => {
     const EventList = ({ events, type }: { events: Event[], type: 'upcoming' | 'past' }) => (
         <motion.ul className="space-y-4">
             {events.map((event, index) => (
-                    <motion.li
-                        key={event.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        whileHover={{ scale: 1.02 }}
-                        className="flex items-center justify-between p-4 bg-gray-800 rounded-lg transition-transform duration-60"
-                        onClick={() => router.push(`/event?id=${event.id}`)}
-                    >
-                        <div>
-                            <h3 className="font-semibold text-white">{event.title}</h3>
-                            <p className="text-sm text-gray-300">
-                                <MapPin className="inline mr-1 h-4 w-4" /> {event.location}
-                            </p>
-                            <p className="text-sm text-gray-300">
-                                <Calendar className="inline mr-1 h-4 w-4" /> {event.date}
-                            </p>
-                        </div>
-                        {type === 'upcoming' && (
-                            <div className="flex -space-x-2">
-                                {event.friends.map((friend, i) => (
-                                    <Avatar key={i} className="border-2 border-gray-800">
-                                        <AvatarFallback>{friend[0]}</AvatarFallback>
-                                    </Avatar>
-                                ))}
-                            </div>
-                        )}
-                    </motion.li>
+                <motion.li
+                    key={event.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="flex items-center justify-between p-4 bg-gray-800 rounded-lg transition-transform duration-60"
+                    onClick={() => router.push(`/event?id=${event.id}`)}
+                >
+                    <div>
+                        <h3 className="font-semibold text-white">{event.title}</h3>
+                        <p className="text-sm text-gray-300">
+                            <MapPin className="inline mr-1 h-4 w-4" /> {event.location}
+                        </p>
+                        <p className="text-sm text-gray-300">
+                            <Calendar className="inline mr-1 h-4 w-4" /> {event.date}
+                        </p>
+                    </div>
+                    <div className="flex -space-x-2">
+                        {event.friends.map((friend, i) => (
+                            <Avatar key={i} className="border-2 border-gray-800">
+                                {friend.avatarUrl ? (
+                                    <AvatarImage src={friend.avatarUrl} alt={friend.username} />
+                                ) : (
+                                    <AvatarFallback>{friend.username[0]}</AvatarFallback>
+                                )}
+                            </Avatar>
+                        ))}
+                    </div>
+                </motion.li>
             ))}
         </motion.ul>
     );
