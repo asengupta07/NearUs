@@ -11,7 +11,12 @@ const darkMode = true;
 export const metadata: Metadata = {
   title: "NearUs",
   description: "An intuitive event planner for connecting with friends and family",
-  
+  generator: "NearUs Team",
+  manifest: "/manifest.json",
+  keywords: ["social", "lifestyle", "productivity"],
+  icons: [
+    { rel: "icon", url: "icons/icon-128x128.png" },
+  ],
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import { UserSchema, EventSchema, UserEventSchema, UserFriendSchema } from '@/app/_models/schema';
+import connectToDatabase from '@/app/_middleware/mongodb';
 
 interface Friend {
     username: string;
@@ -21,6 +22,7 @@ const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserE
 const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
 
 export async function POST(req: NextRequest) {
+    await connectToDatabase();
     try {
         const { email, action, eventId } = await req.json();
 

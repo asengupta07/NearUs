@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatMessage } from '@/app/_models/schema';
 import { dbConnect } from '@/lib/dbConnect';
 import { verifyToken } from '@/app/_middleware/auth';
-import { cookies } from 'next/headers';
 
 export async function GET(req: NextRequest) {
   try {

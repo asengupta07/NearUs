@@ -3,11 +3,13 @@
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import { UserSchema, UserEventSchema } from '@/app/_models/schema';
+import connectToDatabase from '@/app/_middleware/mongodb';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserEventSchema);
 
 export async function POST(req: NextRequest) {
+    await connectToDatabase();
     try {
         const body = await req.json();
         const { email, eventId, location } = body;

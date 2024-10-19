@@ -3,12 +3,14 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { UserSchema,UserFriendSchema} from '@/app/_models/schema';
+import connectToDatabase from '@/app/_middleware/mongodb';
 
 // Initialize the User model
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
 
 export async function POST(request: Request) {
+    await connectToDatabase();
     try {
         const data = await request.json();
         console.log('Received JSON data:', JSON.stringify(data, null, 2));

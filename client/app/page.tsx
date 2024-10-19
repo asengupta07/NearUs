@@ -6,12 +6,23 @@ import { cn } from "@/lib/utils"
 import Navbar from '@/components/function/Navbar'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/contexts/authContext'
+import { useRouter } from 'next/navigation'
 
 export default function LandingPage() {
   const words = ["Meeting", "Hangout", "Outing"];
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const { email } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (email) {
+      console.log('User is logged in:', email)
+      router.push('/dashboard')
+    }
+  }, [email]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

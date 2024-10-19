@@ -1,0 +1,46 @@
+{
+    "name": "Nearus",
+    "short_name": "NearUs",
+    "description": "An intuitive event planner for connecting with friends and family",
+    "theme_color": "#8022f2",
+    "background_color": "#ffffff",
+    "display": "standalone",
+    "orientation": "any",
+    "scope": "/",
+    "start_url": "/",
+    "categories": [
+        "events",
+        "social",
+        "planner",
+        "lifestyle",
+        "friends"
+    ],
+    "icons": [
+        {
+            "src": "/icons/icon-72x72.png",
+            "type": "image/png",
+            "sizes": "72x72"
+        },
+        {
+            "src": "/icons/icon-96x96.png",
+            "type": "image/png",
+            "sizes": "96x96"
+        },
+        {
+            "src": "/icons/icon-144x144.png",
+            "type": "image/png",
+            "sizes": "144x144"
+        },
+        {
+            "src": "/icons/icon-192x192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ],
+    "splash_pages": null
+}

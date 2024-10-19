@@ -3,6 +3,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import { UserSchema, EventSchema, UserFriendSchema, UserEventSchema, NotificationSchema } from '@/app/_models/schema';
+import connectToDatabase from '@/app/_middleware/mongodb';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);
@@ -56,6 +57,7 @@ interface DashboardData {
 }
 
 async function handler(req: NextRequest) {
+    await connectToDatabase();
     if (req.method !== 'POST') {
         return NextResponse.json({ message: 'Method Not Allowed' }, { status: 405 });
     }
