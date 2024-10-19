@@ -25,7 +25,7 @@ interface Event {
   title: string;
   location: string;
   date: string;
-  friends: (Friend | string)[]; 
+  friends: (Friend | string)[];
 }
 
 type DashboardData = {
@@ -331,10 +331,10 @@ const Dashboard: React.FC = () => {
   const { upcomingEvents, pastEvents, friends, notifications } = data;
 
   return (
-    <div className='overflow-hidden h-screen flex flex-col'>
+    <>
       <style>{scrollbarStyles}</style>
       <Navbar notifications={notifications} />
-      <div className="flex-grow overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-950 text-white pt-16 sm:pt-20">
+      <div className="flex-grow overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-950 text-white pt-20 sm:pt-12">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -356,7 +356,7 @@ const Dashboard: React.FC = () => {
                     </span>
                   </h2>
                   <p className="text-gray-300 mb-6 text-base sm:text-lg">Ready to plan your next exciting meetup?</p>
-                  <Link  href="/create">
+                  <Link href="/create">
                     <motion.button
                       className="group relative inline-flex h-12 sm:h-14 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
                       onHoverStart={() => setIsHovered(true)}
@@ -376,7 +376,7 @@ const Dashboard: React.FC = () => {
                         }}
                       />
                       <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-4 py-1 text-sm sm:text-base font-medium text-white backdrop-blur-3xl transition-all duration-300 ease-in-out group-hover:bg-slate-900/80">
-                        Start Planning 
+                        Start Planning
                         <span className="ml-2 inline-block">
                           <Plus className="h-5 w-5" />
                         </span>
@@ -387,47 +387,48 @@ const Dashboard: React.FC = () => {
               </Card>
 
               {/* Notifications Section */}
-              <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg">
-                <CardHeader className="flex flex-row justify-between items-center">
-                  <CardTitle className="text-white flex items-center text-2xl">
-                    <Bell className="mr-3 h-6 w-6" />
-                    Notifications
-                  </CardTitle>
-                  {notifications.length > 0 && (
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => markNotificationsAsRead(notifications.filter(n => !n.read).map(n => n.id))}
-                        className="text-gray-400 hover:text-white transition-colors"
-                      >
-                        Mark all as read
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteNotifications(notifications.map(n => n.id))}
-                        className="text-gray-400 hover:text-white transition-colors"
-                      >
-                        Clear All
-                      </Button>
-                    </div>
-                  )}
-                </CardHeader>
-                <CardContent className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                  {notifications.length > 0 ? (
-                    <motion.ul className="space-y-4">
-                      {notifications.map((notification) => renderNotification(notification))}
-                    </motion.ul>
-                  ) : (
-                    <div className="text-center text-gray-400 py-8">
-                      <Bell className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                      <p className="text-lg">No new notifications</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
+              {notifications.length > 0 &&
+                <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg">
+                  <CardHeader className="flex flex-row justify-between items-center">
+                    <CardTitle className="text-white flex items-center text-2xl">
+                      <Bell className="mr-3 h-6 w-6" />
+                      Notifications
+                    </CardTitle>
+                    {notifications.length > 0 && (
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => markNotificationsAsRead(notifications.filter(n => !n.read).map(n => n.id))}
+                          className="text-gray-400 hover:text-white transition-colors"
+                        >
+                          Mark all as read
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteNotifications(notifications.map(n => n.id))}
+                          className="text-gray-400 hover:text-white transition-colors"
+                        >
+                          Clear All
+                        </Button>
+                      </div>
+                    )}
+                  </CardHeader>
+                  <CardContent className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                    {notifications.length > 0 ? (
+                      <motion.ul className="space-y-4">
+                        {notifications.map((notification) => renderNotification(notification))}
+                      </motion.ul>
+                    ) : (
+                      <div className="text-center text-gray-400 py-8">
+                        <Bell className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                        <p className="text-lg">No new notifications</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              }
               {/* Upcoming Events Section */}
               <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg">
                 <CardHeader className='px-6 pt-6 pb-2'>
@@ -560,7 +561,7 @@ const Dashboard: React.FC = () => {
         <BackgroundBeams className="opacity-100" />
       </div>
       <Toaster />
-    </div>
+    </>
   )
 }
 export default Dashboard;

@@ -57,7 +57,7 @@ export default function FriendProfileModal({ isOpen, onClose, friend }: FriendPr
                     </Card>
                     
                     <div className="flex space-x-3 w-full">
-                        <Link href={`/chat/${friend.id}`} className="flex-1">
+                        <Link href={`/chat`} className="flex-1">
                             <Button variant="default" className="w-full space-x-2">
                                 <MessageCircle className="h-4 w-4" />
                                 <span>Send Message</span>

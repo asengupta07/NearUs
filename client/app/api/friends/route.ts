@@ -1,11 +1,13 @@
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
 import { UserSchema, UserFriendSchema } from '@/app/_models/schema';
+import connectToDatabase from '@/app/_middleware/mongodb';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
 
 export async function GET(req: NextRequest) {
+    await connectToDatabase();
     const email = req.nextUrl.searchParams.get('email');
 
     if (!email) {

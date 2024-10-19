@@ -383,7 +383,7 @@ export default function EventPage() {
                                     <p className="text-gray-400 mb-6">Be the first to suggest an awesome spot for the event!</p>
                                 </motion.div>
                             ) : (
-                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
                                     <AnimatePresence>
                                         {suggestedSpots.map((spot) => (
                                             <motion.div

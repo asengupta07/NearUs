@@ -121,7 +121,7 @@ export default function JoinPage({ params }: PageProps) {
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <p className="text-center text-gray-400">
-                                        You've been invited to join NearUs! Click below to accept the invitation.
+                                        You&apos;ve been invited to join NearUs! Click below to accept the invitation.
                                     </p>
                                     <Button 
                                         onClick={handleJoin} 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { MapPin, Plus, Calendar, Clock } from 'lucide-react'
+import { MapPin, Plus, Calendar, Clock, UserPlus } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +16,7 @@ import Navbar from '@/components/function/Nav'
 import MapComponent from '@/components/function/map'
 import { useAuth } from '@/contexts/authContext'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import { toast, Toaster } from 'sonner'
 import LoadingState from '@/components/LoadingState/LoadingState'
 
 interface Friend {
@@ -65,8 +65,10 @@ export default function CreateNewPlan() {
     const router = useRouter()
     const [friends, setFriends] = useState<Friend[]>([])
     const [selectedFriends, setSelectedFriends] = useState<string[]>([])
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
-    const [selectedTime, setSelectedTime] = useState('12:00')
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+    const [selectedTime, setSelectedTime] = useState<string>(
+        new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
+    )
     const [planName, setPlanName] = useState('')
     const [selectedLocationPreference, setSelectedLocationPreference] = useState('')
     const [isLoading, setIsLoading] = useState(false)
@@ -130,6 +132,35 @@ export default function CreateNewPlan() {
         )
     }
 
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newDate = e.target.value
+        if (newDate >= new Date().toISOString().split('T')[0]) {
+            setSelectedDate(newDate)
+        }
+    }
+
+    const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newTime = e.target.value
+        const [hours, minutes] = newTime.split(':')
+        const selectedDateTime = new Date(selectedDate)
+        selectedDateTime.setHours(parseInt(hours), parseInt(minutes))
+
+        if (selectedDateTime > new Date()) {
+            setSelectedTime(newTime)
+        }
+    }
+
+    useEffect(() => {
+        // Ensure the initial time is valid when the date changes
+        const now = new Date()
+        const selectedDateTime = new Date(selectedDate + 'T' + selectedTime)
+        
+        if (selectedDateTime <= now) {
+            const newTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
+            setSelectedTime(newTime)
+        }
+    }, [selectedDate])
+
     const handleCreatePlan = async (e: React.FormEvent) => {
         e.preventDefault()
         
@@ -150,7 +181,7 @@ export default function CreateNewPlan() {
                 body: JSON.stringify({
                     planName,
                     selectedFriends,
-                    selectedDate: selectedDate?.toISOString().split('T')[0],
+                    selectedDate,
                     selectedTime,
                     selectedLocationPreference,
                     creatorEmail: email,
@@ -172,9 +203,9 @@ export default function CreateNewPlan() {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            recipient: friendId, // Keep using friendId as the recipient
+                            recipient: friendId,
                             type: 'EVENT_CREATED',
-                            sender: email, // Use the creator's email as the sender
+                            sender: email,
                             eventId: data.event._id,
                             message: `You've been invited to ${planName}!`,
                         }),
@@ -196,8 +227,8 @@ export default function CreateNewPlan() {
             // Reset form and redirect
             setPlanName('')
             setSelectedFriends([])
-            setSelectedDate(new Date())
-            setSelectedTime('12:00')
+            setSelectedDate(new Date().toISOString().split('T')[0])
+            setSelectedTime(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }))
             setSelectedLocationPreference('')
             router.push('/events')
     
@@ -217,147 +248,147 @@ export default function CreateNewPlan() {
         <>
             <style>{scrollbarStyles}</style>
             <Navbar notifications={[]} />
-            <div className="custom-scrollbar relative min-h-[200vh] w-full bg-gray-950 text-white overflow-hidden">
-                <div className="absolute inset-0 max-w-4xl mx-auto w-full overflow-y-auto">
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="relative z-20 max-w-7xl mx-auto w-full flex-grow flex flex-col p-4 sm:p-6 lg:p-8 pt-20 lg:pt-20"
-                    >
-                        <Card className="bg-gray-900 border-none">
-                            <CardHeader>
-                                <CardTitle className="text-3xl font-bold">
-                                    <span className={cn(
-                                        "bg-gradient-to-b from-cyan-400 via-purple-500 to-yellow-500 bg-clip-text text-transparent",
-                                        "animate-text-gradient"
-                                    )}>
-                                        Create New Plan
-                                    </span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={handleCreatePlan} className="space-y-8">
-                                    <div>
-                                        <Label htmlFor="plan-name" className="text-white">Plan Name</Label>
-                                        <Input
-                                            id="plan-name"
-                                            placeholder="Enter plan name"
-                                            className="mt-1 bg-gray-800 text-white border-gray-700"
-                                            value={planName}
-                                            onChange={(e) => setPlanName(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-semibold mb-2 text-white">Location Map</h2>
-                                        <div className='relative overflow-hidden rounded-lg shadow-lg'>
-                                            <div className='z-50 h-64 w-full'>
-                                                <MapComponent locations={displayLocations} />
-                                            </div>
+            <div className="flex-grow overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-950 text-white pt-12 sm:pt-12">
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="relative z-20 w-full p-4 sm:p-6 lg:p-8 flex justify-center"
+                >
+                    <Card className="bg-gradient-to-br flex-grow from-gray-800 to-gray-900 border-none shadow-lg max-w-7xl mx-20">
+                        <CardHeader>
+                            <CardTitle className="text-3xl font-bold">
+                                <span className={cn(
+                                    "bg-gradient-to-r from-cyan-400 via-purple-500 to-yellow-500 bg-clip-text text-transparent",
+                                    "animate-text-gradient"
+                                )}>
+                                    Create New Plan
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleCreatePlan} className="space-y-8">
+                                <div>
+                                    <Label htmlFor="plan-name" className="text-white">Plan Name</Label>
+                                    <Input
+                                        id="plan-name"
+                                        placeholder="Enter plan name"
+                                        className="mt-1 bg-gray-800 text-white border-gray-700"
+                                        value={planName}
+                                        onChange={(e) => setPlanName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-semibold mb-2 text-white">Location Map</h2>
+                                    <div className='relative overflow-hidden rounded-lg shadow-lg'>
+                                        <div className='z-50 h-64 w-full'>
+                                            <MapComponent locations={displayLocations} />
                                         </div>
                                     </div>
-                                    <div>
-                                        <h2 className="text-xl font-semibold mb-2 text-white">Select Friends</h2>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {friends.map((friend) => (
-                                                <motion.div
-                                                    key={friend.id}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ duration: 0.3 }}
-                                                    className="flex items-center space-x-2"
-                                                >
-                                                    <Checkbox
-                                                        id={`friend-${friend.id}`}
-                                                        checked={selectedFriends.includes(friend.id)}
-                                                        onCheckedChange={() => handleFriendSelection(friend.id)}
-                                                    />
-                                                    <Label htmlFor={`friend-${friend.id}`} className="text-gray-300">
-                                                        <div className="flex items-center space-x-4">
-                                                            <Avatar>
-                                                                <AvatarImage src={friend.avatarUrl} alt={friend.username} />
-                                                                <AvatarFallback>{friend.username[0]}</AvatarFallback>
-                                                            </Avatar>
-                                                            <div>
-                                                                <p className="font-semibold">{friend.username}</p>
-                                                                <p className="text-sm text-gray-400">@{friend.username}</p>
-                                                            </div>
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-semibold mb-2 text-white">Select Friends</h2>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {friends.map((friend) => (
+                                            <motion.div
+                                                key={friend.id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ duration: 0.3 }}
+                                                className="flex items-center space-x-2"
+                                            >
+                                                <Checkbox
+                                                    id={`friend-${friend.id}`}
+                                                    checked={selectedFriends.includes(friend.id)}
+                                                    onCheckedChange={() => handleFriendSelection(friend.id)}
+                                                />
+                                                <Label htmlFor={`friend-${friend.id}`} className="text-gray-300">
+                                                    <div className="flex items-center space-x-4">
+                                                        <Avatar>
+                                                            <AvatarImage src={friend.avatarUrl} alt={friend.username} />
+                                                            <AvatarFallback>{friend.username[0]}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-semibold">{friend.username}</p>
+                                                            <p className="text-sm text-gray-400">@{friend.username}</p>
                                                         </div>
-                                                    </Label>
-                                                </motion.div>
-                                            ))}
-                                        </div>
+                                                    </div>
+                                                </Label>
+                                            </motion.div>
+                                        ))}
                                     </div>
+                                </div>
 
-                                    <div>
-                                        <h2 className="text-xl font-semibold mb-2 text-white">Location Preferences</h2>
-                                        <Select
-                                            value={selectedLocationPreference}
-                                            onValueChange={setSelectedLocationPreference}
-                                        >
-                                            <SelectTrigger className="w-full bg-gray-800 text-white border-gray-700">
-                                                <SelectValue placeholder="Select location preferences" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-gray-800 text-white border-gray-700">
-                                                {locationPreferences.map(pref => (
-                                                    <SelectItem key={pref} value={pref.toLowerCase()}>{pref}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <h2 className="text-xl font-semibold mb-2 text-white">Set Date & Time</h2>
-                                        <div className="flex space-x-4">
-                                            <div className="flex-1">
-                                                <Label htmlFor="date" className="text-white">Date</Label>
-                                                <div className="flex items-center mt-1">
-                                                    <Calendar className="w-5 h-5 text-gray-400 mr-2" />
-                                                    <Input
-                                                        id="date"
-                                                        type="date"
-                                                        value={selectedDate?.toISOString().split('T')[0]}
-                                                        onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                                                        className="bg-gray-800 text-white border-gray-700"
-                                                        required
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="flex-1">
-                                                <Label htmlFor="time" className="text-white">Time</Label>
-                                                <div className="flex items-center mt-1">
-                                                    <Clock className="w-5 h-5 text-gray-400 mr-2" />
-                                                    <Input
-                                                        id="time"
-                                                        type="time"
-                                                        value={selectedTime}
-                                                        onChange={(e) => setSelectedTime(e.target.value)}
-                                                        className="bg-gray-800 text-white border-gray-700"
-                                                        required
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <Button
-                                        type="submit"
-                                        className="w-full relative overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
-                                        disabled={isLoading}
+                                <div>
+                                    <h2 className="text-xl font-semibold mb-2 text-white">Location Preferences</h2>
+                                    <Select
+                                        value={selectedLocationPreference}
+                                        onValueChange={setSelectedLocationPreference}
                                     >
-                                        <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
-                                        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
-                                            {isLoading ? 'Creating Plan...' : 'Create Plan'} <Plus className="ml-2 h-5 w-5" />
-                                        </span>
-                                    </Button>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-                    <BackgroundBeams className="opacity-100" />
-                </div>
+                                        <SelectTrigger className="w-full bg-gray-800 text-white border-gray-700">
+                                            <SelectValue placeholder="Select location preferences" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-gray-800 text-white border-gray-700">
+                                            {locationPreferences.map(pref => (
+                                                <SelectItem key={pref} value={pref.toLowerCase()}>{pref}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div>
+                                    <h2 className="text-xl font-semibold mb-2 text-white">Set Date & Time</h2>
+                                    <div className="flex space-x-4">
+                                        <div className="flex-1">
+                                            <Label htmlFor="date" className="text-white">Date</Label>
+                                            <div className="flex items-center mt-1">
+                                                <Calendar className="w-5 h-5 text-gray-400 mr-2" />
+                                                <Input
+                                                    id="date"
+                                                    type="date"
+                                                    value={selectedDate}
+                                                    onChange={handleDateChange}
+                                                    min={new Date().toISOString().split('T')[0]}
+                                                    className="bg-gray-800 text-white border-gray-700"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <Label htmlFor="time" className="text-white">Time</Label>
+                                            <div className="flex items-center mt-1">
+                                                <Clock className="w-5 h-5 text-gray-400 mr-2" />
+                                                <Input
+                                                    id="time"
+                                                    type="time"
+                                                    value={selectedTime}
+                                                    onChange={handleTimeChange}
+                                                    className="bg-gray-800 text-white border-gray-700"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    className="w-full relative overflow-hidden rounded-full p-[1px] focus:outline-none  focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+                                    disabled={isLoading}
+                                >
+                                    <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
+                                    <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
+                                        {isLoading ? 'Creating Plan...' : 'Create Plan'} <Plus className="ml-2 h-5 w-5" />
+                                    </span>
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </motion.div>
+                <BackgroundBeams className="opacity-100" />
             </div>
+            <Toaster />
         </>
     )
 }

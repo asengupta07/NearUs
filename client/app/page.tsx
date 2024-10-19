@@ -64,7 +64,7 @@ export default function LandingPage() {
             <motion.span
               className={cn(
                 "bg-gradient-to-r from-cyan-400 via-purple-500 to-yellow-500 bg-clip-text text-transparent",
-                "animate-text-gradient"
+                "animate-text-gradient text-6xl"
               )}
               initial={{ backgroundPosition: '0% 50%' }}
               animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
@@ -74,7 +74,7 @@ export default function LandingPage() {
             </motion.span>
           </h1>
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold flex items-center justify-center">
-            <span className="mr-2">One</span>
+            <span className="mr-2">One&nbsp;</span>
             <AnimatePresence mode="wait">
               <motion.span
                 key={currentWordIndex}
@@ -87,7 +87,7 @@ export default function LandingPage() {
                 {words[currentWordIndex]}
               </motion.span>
             </AnimatePresence>
-            <span className="ml-2">at a Time</span>
+            <span className="ml-2">&nbsp;at a Time</span>
           </h2>
         </motion.div>
         <motion.p
@@ -136,7 +136,7 @@ export default function LandingPage() {
           </Link>
         </motion.div>
       </div>
-      <BackgroundBeams className="opacity-50" />
+      <BackgroundBeams className="opacity-100" />
       <motion.div
         className="pointer-events-none absolute inset-0 z-30"
         animate={{

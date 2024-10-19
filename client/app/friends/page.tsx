@@ -25,6 +25,18 @@ interface User {
     bio: string;
 }
 
+interface Friend {
+    username: string;
+    avatarUrl?: string;
+}
+
+type DashboardData = {
+    upcomingEvents: Event[];
+    pastEvents: Event[];
+    friends: (Friend | string)[];
+    notifications: Notification[];
+}
+
 interface UserWithRequestStatus extends User {
     requestStatus: 'none' | 'sent' | 'pending' | 'friends';
 }
@@ -68,12 +80,21 @@ export default function AddFriends() {
 
     const fetchNotifications = async () => {
         try {
-            const response = await fetch(`/api/notifications?userId=${email}`);
+            const response = await fetch('/api/dashboard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+
             if (!response.ok) {
-                throw new Error('Failed to fetch notifications');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const data: Notification[] = await response.json();
-            setNotifications(data);
+
+            const dashboardData: DashboardData = await response.json();
+            console.log('Received dashboard data:', dashboardData);
+            setNotifications(dashboardData.notifications);
         } catch (error) {
             console.error('Error fetching notifications:', error);
         }
@@ -191,14 +212,14 @@ export default function AddFriends() {
             const response = await fetch('/api/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     query: searchQuery,
                     currentUserEmail: email
                 }),
             })
             if (!response.ok) throw new Error('Search failed')
             const data = await response.json()
-            
+
             // Check if each user is already a friend
             const usersWithRequestStatus: UserWithRequestStatus[] = data.map((user: User) => {
                 const isFriend = friends.some(friend => friend.id === user.id);
@@ -208,7 +229,7 @@ export default function AddFriends() {
                     bio: user.bio || ''
                 };
             });
-            
+
             setSearchResults(usersWithRequestStatus)
         } catch (error) {
             console.error('Error searching users:', error)
@@ -279,7 +300,7 @@ export default function AddFriends() {
     const handleSendRequest = async (userId: string) => {
         const userToUpdate = searchResults.find(user => user.id === userId);
         if (!userToUpdate) return;
-    
+
         // Check if already friends
         if (userToUpdate.requestStatus === 'friends') {
             toast('You are already friends with this user!', {
@@ -288,7 +309,7 @@ export default function AddFriends() {
             });
             return;
         }
-    
+
         if (userToUpdate.requestStatus !== 'none') {
             toast('Friend request already sent or pending.', {
                 icon: '🔔',
@@ -296,7 +317,7 @@ export default function AddFriends() {
             });
             return;
         }
-    
+
         try {
             const response = await fetch('/api/friend-requests', {
                 method: 'POST',
@@ -306,7 +327,7 @@ export default function AddFriends() {
                     receiverId: userId
                 }),
             });
-    
+
             const data = await response.json();
             if (response.ok) {
                 toast.success(data.message || 'Friend request sent successfully!');
@@ -605,7 +626,7 @@ export default function AddFriends() {
                     <Card className="bg-gray-900 border-none mt-auto">
                         <CardContent className="p-4 sm:p-6">
                             <p className="text-center text-sm sm:text-base text-gray-400">
-                                Can't find who you're looking for?{' '}
+                                Can&apos;t find who you&apos;re looking for?{' '}
                                 <Link href="/invite" className="text-purple-400 hover:underline">
                                     Invite your friends
                                 </Link>{' '}

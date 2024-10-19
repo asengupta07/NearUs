@@ -9,7 +9,7 @@ import { Bell, PlusCircle, Clock, Users, Menu, X } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { Notification } from '@/types'
 import { motion, AnimatePresence } from 'framer-motion'
-
+import { IoChatbubblesOutline } from "react-icons/io5";
 interface SignedInNavbarProps {
   notifications: Notification[]
 }
@@ -53,6 +53,7 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
     }
 
     const navItems = [
+        { href: "/chat", icon: IoChatbubblesOutline, label: "Chat" },
         { href: "/create", icon: PlusCircle, label: "New Plan" },
         { href: "/events", icon: Clock, label: "Events" },
         { href: "/friends", icon: Users, label: "Friends" },
