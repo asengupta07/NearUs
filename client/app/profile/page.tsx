@@ -431,13 +431,6 @@ export default function Component() {
                   )}
                 </div>
                 <div className="flex-1 space-y-8 mt-20 md:mt-0">
-                  <div className="space-y-2">
-                    <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500">
-                      {profile.username}
-                    </h2>
-                    <p className="text-gray-400 text-xl">{profile.friendCount} Friends</p>
-                  </div>
-
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="username" className="text-lg font-medium text-gray-300 flex items-center gap-2">

@@ -22,11 +22,24 @@ const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', Us
 
 export async function POST(req: NextRequest) {
     try {
-        const { email } = await req.json();
+        const { email, action, eventId } = await req.json();
 
         const user = await User.findOne({ email });
         if (!user) {
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
+        }
+
+        if (action === 'removeFromEvent') {
+            await UserEvent.findOneAndUpdate(
+                { userId: user._id, eventId: eventId },
+                { status: 'NotGoing' }
+            );
+            return NextResponse.json({ message: 'Removed from event successfully' }, { status: 200 });
+        }
+
+        if (action === 'deletePastEvent') {
+            await UserEvent.findOneAndDelete({ userId: user._id, eventId: eventId });
+            return NextResponse.json({ message: 'Past event deleted successfully' }, { status: 200 });
         }
 
         const userEvents = await UserEvent.find({ userId: user._id, status: 'Going' });

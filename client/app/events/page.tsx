@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, MapPin, UserPlus, Check, X } from 'lucide-react'
+import { Calendar, MapPin, UserPlus, Check, X, LogOut, Trash2 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -159,12 +159,6 @@ const EventsPage: React.FC = () => {
                         <p className="text-sm text-gray-300">
                             <UserPlus className="inline mr-1 h-4 w-4" /> Invited by {invitation.invitedBy}
                         </p>
-                        <div className="mt-2">
-                            <span className="text-sm text-gray-400">Also invited: </span>
-                            <span className="text-sm text-gray-300">
-                                {invitation.invitedFriends.length ? invitation.invitedFriends.join(', ') : "No one else invited..."}
-                            </span>
-                        </div>
                     </div>
                     <div className="flex space-x-2">
                         <Button
@@ -188,6 +182,50 @@ const EventsPage: React.FC = () => {
         </motion.ul>
     );
 
+    const handleRemoveFromEvent = async (eventId: string) => {
+        try {
+            const response = await fetch('/api/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, action: 'removeFromEvent', eventId })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to remove from event');
+            }
+
+            setEventsData(prevData => ({
+                ...prevData,
+                upcomingEvents: prevData.upcomingEvents.filter(event => event.id !== eventId)
+            }));
+        } catch (error) {
+            console.error('Error removing from event:', error);
+            setError('Failed to remove from event. Please try again later.');
+        }
+    };
+
+    const handleDeletePastEvent = async (eventId: string) => {
+        try {
+            const response = await fetch('/api/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, action: 'deletePastEvent', eventId })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete past event');
+            }
+
+            setEventsData(prevData => ({
+                ...prevData,
+                pastEvents: prevData.pastEvents.filter(event => event.id !== eventId)
+            }));
+        } catch (error) {
+            console.error('Error deleting past event:', error);
+            setError('Failed to delete past event. Please try again later.');
+        }
+    };
+
     const EventList = ({ events, type }: { events: Event[], type: 'upcoming' | 'past' }) => (
         <motion.ul className="space-y-4">
             {events.map((event, index) => (
@@ -198,9 +236,8 @@ const EventsPage: React.FC = () => {
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     whileHover={{ scale: 1.02 }}
                     className="flex items-center justify-between p-4 bg-gray-800 rounded-lg transition-transform duration-60"
-                    onClick={() => router.push(`/event?id=${event.id}`)}
                 >
-                    <div>
+                    <div className="flex-grow" onClick={() => router.push(`/event?id=${event.id}`)}>
                         <h3 className="font-semibold text-white">{event.title}</h3>
                         <p className="text-sm text-gray-300">
                             <MapPin className="inline mr-1 h-4 w-4" /> {event.location}
@@ -209,16 +246,37 @@ const EventsPage: React.FC = () => {
                             <Calendar className="inline mr-1 h-4 w-4" /> {event.date}
                         </p>
                     </div>
-                    <div className="flex -space-x-2">
-                        {event.friends.map((friend, i) => (
-                            <Avatar key={i} className="border-2 border-gray-800">
-                                {friend.avatarUrl ? (
-                                    <AvatarImage src={friend.avatarUrl} alt={friend.username} />
-                                ) : (
-                                    <AvatarFallback>{friend.username[0]}</AvatarFallback>
-                                )}
-                            </Avatar>
-                        ))}
+                    <div className="flex items-center space-x-2">
+                        <div className="flex -space-x-2">
+                            {event.friends.map((friend, i) => (
+                                <Avatar key={i} className="border-2 border-gray-800">
+                                    {friend.avatarUrl ? (
+                                        <AvatarImage src={friend.avatarUrl} alt={friend.username} />
+                                    ) : (
+                                        <AvatarFallback>{friend.username ? friend.username[0] : '?'}</AvatarFallback>
+                                    )}
+                                </Avatar>
+                            ))}
+                        </div>
+                        {type === 'upcoming' ? (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRemoveFromEvent(event.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                            >
+                                <LogOut className="mr-2 h-4 w-4" /> Leave
+                            </Button>
+                        ) : (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeletePastEvent(event.id)}
+                                className="bg-gray-600 hover:bg-gray-700"
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </Button>
+                        )}
                     </div>
                 </motion.li>
             ))}
@@ -255,6 +313,8 @@ const EventsPage: React.FC = () => {
             )}
         </motion.div>
     );
+
+    
 
     if (loading) {
         return <LoadingState message="Loading your events..." submessage="Preparing your upcoming and past events" />

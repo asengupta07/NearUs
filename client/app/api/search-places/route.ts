@@ -66,7 +66,15 @@ async function posthandler(req: NextRequest) {
             maxDistance: attendee.flexibility/100
         }));
 
-        const centroid = findCentroid(coords);
+        let centroid;
+        try {
+            centroid = findCentroid(coords);
+        } catch (error) {
+            if (error instanceof Error && error.message === "No overlapping area found. Users' travel ranges do not intersect.") {
+                return NextResponse.json({ error: error.message }, { status: 400 });
+            }
+            throw error;
+        }
         
         const x = centroid.centroid.x;
         const y = centroid.centroid.y;

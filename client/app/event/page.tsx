@@ -122,6 +122,7 @@ export default function EventPage() {
     const [suggestedSpots, setSuggestedSpots] = useState<SuggestedSpot[]>([])
     const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
     const [userVotes, setUserVotes] = useState<{ [key: string]: string }>({})
+    const [searchError, setSearchError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchSuggestedSpots = async () => {
@@ -230,6 +231,7 @@ export default function EventPage() {
 
     const handleSearch = async () => {
         if (!selectedPlaceType) return;
+        setSearchError(null); 
         try {
             const response = await fetch(`/api/search-places`,
                 {
@@ -237,12 +239,15 @@ export default function EventPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ placeType: selectedPlaceType, eventId }),
                 }
-            )
-            if (!response.ok) throw new Error('Failed to search places')
-            const data = await response.json()
-            setSearchResults(data.places)
+            );
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to search places');
+            }
+            setSearchResults(data.places);
         } catch (error) {
-            console.error('Error searching places:', error)
+            console.error('Error searching places:', error);
+            setSearchError(error instanceof Error ? error.message : 'An error occurred while searching places');
         }
     }
 
@@ -255,9 +260,20 @@ export default function EventPage() {
     ]
 
     const mapLocations = [
-        ...attendees.map(a => ({ name: a.username, ...a.location, color: a.isAttending ? 'green' : 'red' })),
-        ...searchResults.map(a => ({ name: a.name, latitude: a.coords.lat, longitude: a.coords.lng, color: 'blue' })),
+        ...attendees.filter(a => a.isAttending).map(a => ({ 
+            name: a.username, 
+            latitude: a.location.latitude, 
+            longitude: a.location.longitude, 
+            color: 'green' 
+        })),
+        ...searchResults.map(a => ({ 
+            name: a.name, 
+            latitude: a.coords.lat, 
+            longitude: a.coords.lng, 
+            color: 'blue' 
+        })),
     ]
+
     return (
         <>
             <style>{scrollbarStyles}</style>
@@ -520,6 +536,11 @@ export default function EventPage() {
                                         Search
                                     </Button>
                                 </div>
+                                {searchError && (
+                                    <p className="text-yellow-400 text-sm">
+                                        {searchError}
+                                    </p>
+                                )}
                                 {!canSuggestPlaces && (
                                     <p className="text-yellow-400 text-sm">
                                         Warning: Not all attendees&apos; flexibilities overlap. We may not be able to suggest optimal places.
@@ -536,7 +557,6 @@ export default function EventPage() {
                     </Card>
                 </motion.div>
                 <BackgroundBeams className="opacity-100" />
-
             </div>
         </>
     )
