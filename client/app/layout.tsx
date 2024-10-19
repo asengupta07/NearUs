@@ -10,6 +10,8 @@ const darkMode = true;
 
 export const metadata: Metadata = {
   title: "NearUs",
+  description: "An intuitive event planner for connecting with friends and family",
+  
 };
 
 export default function RootLayout({
