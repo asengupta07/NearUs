@@ -137,7 +137,7 @@ export default function ChatPage() {
       <div className="flex flex-grow overflow-hidden pt-16">
         {/* Sidebar Toggle for Mobile */}
         <Button
-          className="md:hidden fixed bottom-4 right-4 z-50 rounded-full w-12 h-12 bg-primary shadow-lg"
+          className="md:hidden fixed top-20 right-4 z-50 rounded-full w-12 h-12 bg-primary shadow-lg"
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         >
           <Users className="h-5 w-5" />
@@ -147,7 +147,7 @@ export default function ChatPage() {
         <div className={`
           fixed md:relative
           w-80 md:w-80 lg:w-96
-          h-full
+          h-[92vh]
           bg-gray-900/95 backdrop-blur-lg
           border-r border-gray-800
           transition-all duration-300 ease-in-out
