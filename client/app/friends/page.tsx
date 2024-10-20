@@ -386,7 +386,7 @@ export default function AddFriends() {
     return (
         <>
             <Navbar notifications={notifications} />
-            <div className="relative min-h-screen pt-8 w-full overflow-hidden bg-gray-950 text-white">
+            <div className="relative min-h-screen pt-20 sm:pt-12 w-full overflow-hidden bg-transparent text-white">
                 <div className="relative z-20 max-w-4xl mx-auto w-full flex-grow flex flex-col p-4 sm:p-6 lg:p-8">
                     <header className="text-center mb-8">
                         <h1 className="text-3xl sm:text-4xl font-bold mb-2">

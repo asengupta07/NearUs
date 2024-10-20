@@ -19,6 +19,10 @@ import { redirect } from 'next/navigation'
 import { Textarea } from "@/components/ui/textarea"
 import { motion } from 'framer-motion'
 
+interface DashboardData {
+  notifications: Notification[]
+}
+
 interface Profile {
   username: string;
   email: string;
@@ -79,18 +83,22 @@ export default function Component() {
   };
 
   const fetchNotifications = async () => {
-    if (!email) {
-      console.error('User email is not available');
-      return;
-    }
     try {
-      const response = await fetch(`/api/notifications?userId=${encodeURIComponent(email)}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch('/api/dashboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
       });
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-      const data: Notification[] = await response.json();
-      setNotifications(data);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const dashboardData: DashboardData = await response.json();
+      console.log('Received dashboard data:', dashboardData);
+      setNotifications(dashboardData.notifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
@@ -240,7 +248,6 @@ export default function Component() {
 
       const data = await response.json();
 
-      // Update the profile with the default avatar URL or null
       setProfile(prev => prev ? { ...prev, avatarUrl: '' } : null);
       setEditedProfile(prev => prev ? { ...prev, avatarUrl: '' } : null);
 
@@ -264,14 +271,14 @@ export default function Component() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gray-950 text-white">
       <Navbar notifications={notifications} />
-      <div className="relative z-20 flex min-h-[calc(100vh-64px)] flex-col items-center justify-center px-4 py-16">
+      <div className="relative z-20 flex min-h-[calc(100vh-64px)] flex-col items-center justify-center px-4 pt-20 sm:pt-16 pb-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
           className="mb-12 w-full max-w-4xl text-center"
         >
-          <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+          <h1 className="mb-6 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
             <motion.span
               className={cn(
                 "bg-gradient-to-r from-cyan-400 via-purple-500 to-yellow-500 bg-clip-text text-transparent",
@@ -284,7 +291,7 @@ export default function Component() {
               Your Profile
             </motion.span>
           </h1>
-          <p className="text-lg text-gray-300 sm:text-xl md:max-w-lg mx-auto">
+          <p className="text-base text-gray-300 sm:text-lg md:text-xl md:max-w-lg mx-auto">
             Manage your personal information
           </p>
         </motion.div>
@@ -296,18 +303,18 @@ export default function Component() {
           className="w-full max-w-4xl"
         >
           <Card className="rounded-3xl shadow-2xl border border-gray-800 bg-gray-900/90 backdrop-blur-sm transition-all duration-300 hover:shadow-purple-500/10">
-            <CardHeader className="flex flex-row items-center justify-between p-8 border-b border-gray-800">
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            <CardHeader className="flex flex-col sm:flex-row items-center justify-between p-6 sm:p-8 border-b border-gray-800">
+              <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-4 sm:mb-0">
                 Profile Details
               </CardTitle>
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
                         disabled={isSaving}
-                        className="group relative inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+                        className="group relative inline-flex h-10 sm:h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
                       >
                         <motion.span
                           className="absolute inset-[-1000%] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]"
@@ -320,13 +327,13 @@ export default function Component() {
                             ease: "linear",
                           }}
                         />
-                        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-4 py-1 text-sm font-medium text-white backdrop-blur-3xl transition-colors hover:bg-slate-900/80">
+                        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 sm:px-4 py-1 text-sm font-medium text-white backdrop-blur-3xl transition-colors hover:bg-slate-900/80">
                           {isSaving ? (
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                           ) : isEditing ? (
-                            <Save className="mr-2 h-5 w-5" />
+                            <Save className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                           ) : (
-                            <Edit2 className="mr-2 h-5 w-5" />
+                            <Edit2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                           )}
                           {isEditing ? 'Save Changes' : 'Edit Profile'}
                         </span>
@@ -342,10 +349,11 @@ export default function Component() {
                     <TooltipTrigger asChild>
                       <Button
                         onClick={handleLogout}
-                        className="group relative inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+                        className="group relative inline-flex h-10 sm:h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
                       >
                         <motion.span
-                          className="absolute inset-[-1000%] bg-[conic-gradient(from_90deg_at_50%_50%,#FF6B6B_0%,#FF8E53_50%,#FF6B6B_100%)]"
+                          className="absolute inset-[-1000%] 
+                          bg-[conic-gradient(from_90deg_at_50%_50%,#FF6B6B_0%,#FF8E53_50%,#FF6B6B_100%)]"
                           animate={{
                             rotate: 360,
                           }}
@@ -353,11 +361,10 @@ export default function Component() {
                             duration: 2,
                             repeat: Infinity,
                             ease: "linear",
-                
                           }}
                         />
-                        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-4 py-1 text-sm font-medium text-white backdrop-blur-3xl transition-colors hover:bg-slate-900/80">
-                          <LogOut className="mr-2 h-5 w-5" />
+                        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 sm:px-4 py-1 text-sm font-medium text-white backdrop-blur-3xl transition-colors hover:bg-slate-900/80">
+                          <LogOut className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                           Logout
                         </span>
                       </Button>
@@ -369,26 +376,26 @@ export default function Component() {
                 </TooltipProvider>
               </div>
             </CardHeader>
-            <CardContent className="p-8">
-              <div className="flex flex-col md:flex-row md:items-center">
-                <div className="relative group flex items-center justify-center w-full md:w-auto md:mr-12">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col md:flex-row md:items-start">
+                <div className="relative group flex items-center justify-center w-full md:w-auto md:mr-12 mb-8 md:mb-0">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-                  <Avatar className="relative w-48 h-48 rounded-full border-4 border-purple-600/50">
+                  <Avatar className="relative w-32 h-32 sm:w-48 sm:h-48 rounded-full border-4 border-purple-600/50">
                     <AvatarImage src={profile.avatarUrl} alt={profile.username} className="object-cover" />
-                    <AvatarFallback className="text-5xl bg-gradient-to-br from-cyan-500 via-purple-600 to-pink-500 text-white">
+                    <AvatarFallback className="text-3xl sm:text-5xl bg-gradient-to-br from-cyan-500 via-purple-600 to-pink-500 text-white">
                       {profile.username[0]}
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
-                    <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 flex gap-4">
+                    <div className="absolute -bottom-12 sm:-bottom-16 left-1/2 transform -translate-x-1/2 flex gap-4">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <label className="w-12 h-12 flex items-center justify-center bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 rounded-full cursor-pointer hover:from-cyan-600 hover:via-purple-700 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-purple-500/20">
+                            <label className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 rounded-full cursor-pointer hover:from-cyan-600 hover:via-purple-700 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-purple-500/20">
                               {isUploading ? (
-                                <Loader2 className="h-6 w-6 animate-spin text-white" />
+                                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-white" />
                               ) : (
-                                <Camera className="h-6 w-6 text-white" />
+                                <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                               )}
                               <input
                                 type="file"
@@ -412,12 +419,12 @@ export default function Component() {
                               <Button
                                 onClick={handleRemoveAvatar}
                                 disabled={isRemovingAvatar}
-                                className="w-12 h-12 p-0 flex items-center justify-center bg-gradient-to-r from-red-500 to-red-600 rounded-full hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-red-500/20"
+                                className="w-10 h-10 sm:w-12 sm:h-12 p-0 flex items-center justify-center bg-gradient-to-r from-red-500 to-red-600 rounded-full hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-red-500/20"
                               >
                                 {isRemovingAvatar ? (
-                                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                                  <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-white" />
                                 ) : (
-                                  <Trash2 className="h-6 w-6 text-white" />
+                                  <Trash2 className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                                 )}
                               </Button>
                             </TooltipTrigger>
@@ -430,11 +437,11 @@ export default function Component() {
                     </div>
                   )}
                 </div>
-                <div className="flex-1 space-y-8 mt-20 md:mt-0">
-                  <div className="space-y-6">
+                <div className="flex-1 space-y-6 sm:space-y-8">
+                  <div className="space-y-4 sm:space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="username" className="text-lg font-medium text-gray-300 flex items-center gap-2">
-                        <User className="h-5 w-5 text-cyan-400" />
+                      <Label htmlFor="username" className="text-base sm:text-lg font-medium text-gray-300 flex items-center gap-2">
+                        <User className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400" />
                         Username
                       </Label>
                       {isEditing ? (
@@ -445,27 +452,27 @@ export default function Component() {
                             ...prev,
                             username: e.target.value
                           } : null)}
-                          className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 transition-colors text-lg py-3 text-left"
+                          className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 transition-colors text-base sm:text-lg py-2 sm:py-3 text-left"
                         />
                       ) : (
-                        <p className="text-gray-200 text-xl text-left">{profile.username}</p>
+                        <p className="text-gray-200 text-lg sm:text-xl text-left">{profile.username}</p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-lg font-medium text-gray-300 flex items-center gap-2">
-                        <Mail className="h-5 w-5 text-purple-400" />
+                      <Label htmlFor="email" className="text-base sm:text-lg font-medium text-gray-300 flex items-center gap-2">
+                        <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
                         Email
                       </Label>
-                      <p className="text-gray-200 text-xl text-left">{profile.email}</p>
+                      <p className="text-gray-200 text-lg sm:text-xl text-left">{profile.email}</p>
                     </div>
 
                     <div className="space-y-4">
                       <Label
                         htmlFor="bio"
-                        className="text-lg font-medium text-gray-300 flex items-center gap-2"
+                        className="text-base sm:text-lg font-medium text-gray-300 flex items-center gap-2"
                       >
-                        <FileText className="h-5 w-5 text-pink-400" />
+                        <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-pink-400" />
                         About Me
                       </Label>
                       {isEditing ? (
@@ -476,16 +483,16 @@ export default function Component() {
                             prev ? { ...prev, bio: e.target.value } : null
                           )}
                           placeholder="Tell us about yourself..."
-                          className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 min-h-[120px] resize-none text-left"
+                          className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 min-h-[100px] sm:min-h-[120px] resize-none text-left text-base sm:text-lg"
                         />
                       ) : (
                         <div className="text-left">
                           {profile.bio ? (
-                            <p className="text-gray-200 text-xl whitespace-pre-wrap">
+                            <p className="text-gray-200 text-base sm:text-lg whitespace-pre-wrap">
                               {profile.bio}
                             </p>
                           ) : (
-                            <p className="text-gray-400 text-lg italic">
+                            <p className="text-gray-400 text-base sm:text-lg italic">
                               No bio added yet. Click edit to add one!
                             </p>
                           )}
@@ -494,8 +501,8 @@ export default function Component() {
                     </div>
 
                     <div className="space-y-4">
-                      <Label htmlFor="location" className="text-lg font-medium text-gray-300 flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-cyan-400" />
+                      <Label htmlFor="location" className="text-base sm:text-lg font-medium text-gray-300 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400" />
                         Location
                       </Label>
                       {isEditing ? (
@@ -504,7 +511,7 @@ export default function Component() {
                             value={locationType}
                             onValueChange={(value: 'manual' | 'coordinates') => setLocationType(value)}
                           >
-                            <SelectTrigger className="w-full bg-gray-800/50 text-gray-200 border-gray-700 text-left">
+                            <SelectTrigger className="w-full bg-gray-800/50 text-gray-200 border-gray-700 text-left text-base sm:text-lg">
                               <SelectValue placeholder="Select location type" />
                             </SelectTrigger>
                             <SelectContent>
@@ -523,15 +530,15 @@ export default function Component() {
                                 coordinates: undefined
                               } : null)}
                               placeholder="Enter your location (e.g., New York, London)"
-                              className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 text-left"
+                              className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 text-left text-base sm:text-lg"
                             />
                           ) : (
-                            <div className="flex gap-4 items-center">
+                            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                               <Input
                                 value={editedProfile?.coordinates || ''}
                                 readOnly
                                 placeholder="Click the button to get your current location"
-                                className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 flex-1 text-left"
+                                className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 flex-1 text-left text-base sm:text-lg"
                               />
                               <TooltipProvider>
                                 <Tooltip>
@@ -539,13 +546,14 @@ export default function Component() {
                                     <Button
                                       onClick={getCurrentLocation}
                                       disabled={isGettingLocation}
-                                      className="bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 hover:from-cyan-600 hover:via-purple-700 hover:to-pink-600 transition-all duration-200"
+                                      className="bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 hover:from-cyan-600 hover:via-purple-700 hover:to-pink-600 transition-all duration-200 w-full sm:w-auto"
                                     >
                                       {isGettingLocation ? (
-                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                                       ) : (
-                                        <Navigation className="h-5 w-5" />
+                                        <Navigation className="h-4 w-4 sm:h-5 sm:w-5" />
                                       )}
+                                      <span className="ml-2">Get Location</span>
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -557,10 +565,10 @@ export default function Component() {
                           )}
                         </div>
                       ) : (
-                        <p className="text-gray-200 text-xl text-left">
+                        <p className="text-gray-200 text-base sm:text-lg text-left">
                           {profile?.location}
                           {profile?.coordinates && (
-                            <span className="text-sm text-gray-400 block">
+                            <span className="text-xs sm:text-sm text-gray-400 block mt-1">
                               Coordinates: {profile.coordinates}
                             </span>
                           )}

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { Notification } from '@/types'
 
 interface UserData {
   id: string
@@ -31,6 +32,10 @@ interface ApiResponse {
   friends: UserData[]
 }
 
+interface DashboardData {
+  notifications: Notification[]
+}
+
 export default function ChatPage() {
   const { email, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -41,12 +46,36 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  
+  const fetchNotifications = async () => {
+    try {
+        const response = await fetch('/api/dashboard', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const dashboardData: DashboardData = await response.json();
+        console.log('Received dashboard data:', dashboardData);
+        setNotifications(dashboardData.notifications);
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+    }
+};
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/login')
       return
     }
+    
 
     async function fetchUserData() {
       if (!email) return
@@ -74,6 +103,7 @@ export default function ChatPage() {
     if (!authLoading && email) {
       fetchUserData()
     }
+    fetchNotifications()
   }, [email, authLoading, isAuthenticated, router])
 
   const filteredFriends = friends.filter(friend =>
@@ -133,7 +163,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-950">
-      <Navbar notifications={[]} />
+      <Navbar notifications={notifications} />
       <div className="flex flex-grow overflow-hidden pt-16">
         {/* Sidebar Toggle for Mobile */}
         <Button

@@ -13,6 +13,11 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/authContext'
 import { useRouter } from 'next/navigation'
 import LoadingState from '@/components/LoadingState/LoadingState'
+import { Notification } from '@/types'
+
+interface DashboardData {
+    notifications: Notification[]
+  }
 
 interface Event {
     id: string;
@@ -61,8 +66,33 @@ const EventsPage: React.FC = () => {
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+
+    const fetchNotifications = async () => {
+        try {
+            const response = await fetch('/api/dashboard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+    
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+    
+            const dashboardData: DashboardData = await response.json();
+            console.log('Received dashboard data:', dashboardData);
+            setNotifications(dashboardData.notifications);
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    };
+    
 
     useEffect(() => {
+        fetchNotifications();
         const fetchData = async () => {
             if (email) {
                 setLoading(true);
@@ -337,8 +367,8 @@ const EventsPage: React.FC = () => {
     return (
         <div>
             <style>{scrollbarStyles}</style>
-            <Navbar notifications={[]} />
-            <div className="relative min-h-[90vh] pt-20 lg:pt-10 lg:max-h-[100vh] w-full bg-gray-950 text-white">
+            <Navbar notifications={notifications} />
+            <div className="relative min-h-[90vh] pt-20 sm:pt-12 lg:max-h-[100vh] w-full bg-gray-950 text-white">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}

@@ -18,6 +18,11 @@ import { useAuth } from '@/contexts/authContext'
 import { useRouter } from 'next/navigation'
 import { toast, Toaster } from 'sonner'
 import LoadingState from '@/components/LoadingState/LoadingState'
+import { Notification } from '@/types'
+
+interface DashboardData {
+    notifications: Notification[]
+}
 
 interface Friend {
     id: string;
@@ -76,8 +81,33 @@ export default function CreateNewPlan() {
     const [displayLocations, setDisplayLocations] = useState<Location[]>([])
     const locationPreferences = ['Cafes', 'Parks', 'Restaurants', 'Malls', 'Cinemas', 'Bars']
     const [pageLoading, setPageLoading] = useState(true)
+    const [notifications, setNotifications] = useState<Notification[]>([])
+
+    const fetchNotifications = async () => {
+        try {
+            const response = await fetch('/api/dashboard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const dashboardData: DashboardData = await response.json();
+            console.log('Received dashboard data:', dashboardData);
+            setNotifications(dashboardData.notifications);
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    };
+
 
     useEffect(() => {
+        fetchNotifications()
         const fetchData = async () => {
             if (!email) {
                 setPageLoading(false)
@@ -91,11 +121,11 @@ export default function CreateNewPlan() {
                         'Content-Type': 'application/json',
                     },
                 });
-                
+
                 if (!friendsResponse.ok) {
                     throw new Error('Failed to fetch friends')
                 }
-                
+
                 const friendsData = await friendsResponse.json();
 
                 const locData = friendsData.friends.map((friend: Friend) => ({
@@ -103,14 +133,14 @@ export default function CreateNewPlan() {
                     longitude: friend.location.longitude,
                     latitude: friend.location.latitude,
                 }));
-                
+
                 const myLocation = {
                     name: 'You',
                     longitude: friendsData.me.location.longitude,
                     latitude: friendsData.me.location.latitude
                 }
                 locData.push(myLocation)
-                
+
                 setDisplayLocations(locData)
                 setFriends(friendsData.friends);
             } catch (error) {
@@ -154,7 +184,7 @@ export default function CreateNewPlan() {
         // Ensure the initial time is valid when the date changes
         const now = new Date()
         const selectedDateTime = new Date(selectedDate + 'T' + selectedTime)
-        
+
         if (selectedDateTime <= now) {
             const newTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
             setSelectedTime(newTime)
@@ -163,14 +193,14 @@ export default function CreateNewPlan() {
 
     const handleCreatePlan = async (e: React.FormEvent) => {
         e.preventDefault()
-        
+
         if (!planName || !selectedFriends.length || !selectedDate || !selectedLocationPreference) {
             toast.error('Please fill in all required fields')
             return
         }
-    
+
         setIsLoading(true)
-        
+
         try {
             // Create the plan
             const response = await fetch('/api/create-plan', {
@@ -187,13 +217,13 @@ export default function CreateNewPlan() {
                     creatorEmail: email,
                 }),
             })
-            
+
             if (!response.ok) {
                 throw new Error('Failed to create plan')
             }
-            
+
             const data = await response.json()
-    
+
             // Send notifications sequentially
             for (const friendId of selectedFriends) {
                 try {
@@ -210,7 +240,7 @@ export default function CreateNewPlan() {
                             message: `You've been invited to ${planName}!`,
                         }),
                     })
-    
+
                     if (!notificationResponse.ok) {
                         const errorData = await notificationResponse.json()
                         console.error('Notification error:', errorData)
@@ -221,9 +251,9 @@ export default function CreateNewPlan() {
                     toast.error(`Failed to send notification to a friend. They may not receive an invite.`)
                 }
             }
-    
+
             toast.success('Plan created successfully!')
-            
+
             // Reset form and redirect
             setPlanName('')
             setSelectedFriends([])
@@ -231,7 +261,7 @@ export default function CreateNewPlan() {
             setSelectedTime(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }))
             setSelectedLocationPreference('')
             router.push('/events')
-    
+
         } catch (error) {
             console.error('Error creating plan:', error)
             toast.error('Failed to create plan. Please try again.')
@@ -247,8 +277,8 @@ export default function CreateNewPlan() {
     return (
         <>
             <style>{scrollbarStyles}</style>
-            <Navbar notifications={[]} />
-            <div className="flex-grow overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-950 text-white pt-12 sm:pt-12">
+            <Navbar notifications={notifications} />
+            <div className="flex-grow overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-950 text-white pt-20 sm:pt-12">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -309,10 +339,11 @@ export default function CreateNewPlan() {
                                                             <AvatarImage src={friend.avatarUrl} alt={friend.username} />
                                                             <AvatarFallback>{friend.username[0]}</AvatarFallback>
                                                         </Avatar>
-                                                        <div>
-                                                            <p className="font-semibold">{friend.username}</p>
-                                                            <p className="text-sm text-gray-400">@{friend.username}</p>
+                                                        <div className="w-20">
+                                                            <p className="font-semibold truncate sm:overflow-visible sm:text-clip">{friend.username}</p>
+                                                            <p className="text-sm text-gray-400 truncate sm:overflow-visible sm:text-clip">@{friend.username}</p>
                                                         </div>
+
                                                     </div>
                                                 </Label>
                                             </motion.div>

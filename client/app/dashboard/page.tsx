@@ -53,7 +53,7 @@ const scrollbarStyles = `
   }
 `;
 
-const Dashboard: React.FC = () => {
+export default function Component() {
   const { email } = useAuth();
   const [data, setData] = useState<DashboardData>({
     upcomingEvents: [],
@@ -203,15 +203,15 @@ const Dashboard: React.FC = () => {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "flex items-center p-4 rounded-lg transition-colors hover:bg-opacity-80",
+        "flex flex-col sm:flex-row items-start sm:items-center p-4 rounded-lg transition-colors hover:bg-opacity-80",
         notification.read ? 'bg-gray-800' : 'bg-gray-700',
         getNotificationStyle(notification.type)
       )}
     >
-      <div className="mr-4 bg-gray-600 p-2 rounded-full">
+      <div className="mr-4 bg-gray-600 p-2 rounded-full mb-2 sm:mb-0">
         {renderNotificationIcon(notification.type)}
       </div>
-      <div className="flex-grow">
+      <div className="flex-grow mb-2 sm:mb-0">
         <p className="text-sm text-white font-medium">{notification.message}</p>
         {notification.sender && (
           <p className="text-xs text-gray-400 mt-1">
@@ -228,7 +228,7 @@ const Dashboard: React.FC = () => {
           {new Date(notification.createdAt).toLocaleDateString()}
         </p>
       </div>
-      <div className="flex space-x-2">
+      <div className="flex space-x-2 w-full sm:w-auto justify-end">
         {!notification.read && (
           <Button
             variant="ghost"
@@ -343,11 +343,11 @@ const Dashboard: React.FC = () => {
         >
           <main className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Left Column */}
-            <div className="lg:col-span-3 space-y-8">
+            <div className="lg:col-span-3 flex flex-col space-y-8">
               {/* Welcome Message and Start Planning Button */}
               <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg">
                 <CardContent className="pt-8 pb-6 px-6">
-                  <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+                  <h2 className="text-3xl sm:text-4xl font-bold  mb-4">
                     <span className={cn(
                       "bg-gradient-to-r from-cyan-400 via-purple-500 to-yellow-500 bg-clip-text text-transparent",
                       "animate-text-gradient"
@@ -389,18 +389,18 @@ const Dashboard: React.FC = () => {
               {/* Notifications Section */}
               {notifications.length > 0 &&
                 <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg">
-                  <CardHeader className="flex flex-row justify-between items-center">
-                    <CardTitle className="text-white flex items-center text-2xl">
+                  <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <CardTitle className="text-white flex items-center text-2xl mb-4 sm:mb-0">
                       <Bell className="mr-3 h-6 w-6" />
                       Notifications
                     </CardTitle>
                     {notifications.length > 0 && (
-                      <div className="flex space-x-2">
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => markNotificationsAsRead(notifications.filter(n => !n.read).map(n => n.id))}
-                          className="text-gray-400 hover:text-white transition-colors"
+                          className="text-gray-400 hover:text-white transition-colors w-full sm:w-auto"
                         >
                           Mark all as read
                         </Button>
@@ -408,14 +408,14 @@ const Dashboard: React.FC = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => deleteNotifications(notifications.map(n => n.id))}
-                          className="text-gray-400 hover:text-white transition-colors"
+                          className="text-gray-400 hover:text-white transition-colors w-full sm:w-auto"
                         >
                           Clear All
                         </Button>
                       </div>
                     )}
                   </CardHeader>
-                  <CardContent className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                  <CardContent className="max-h-[300px] sm:max-h-[400px] overflow-y-auto custom-scrollbar">
                     {notifications.length > 0 ? (
                       <motion.ul className="space-y-4">
                         {notifications.map((notification) => renderNotification(notification))}
@@ -446,9 +446,9 @@ const Dashboard: React.FC = () => {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.1 }}
-                          className="flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors"
+                          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors"
                         >
-                          <div>
+                          <div className="mb-2 sm:mb-0">
                             <h3 className="font-semibold text-white text-lg">{event.title}</h3>
                             <p className="text-sm text-gray-300 mt-1">
                               <MapPin className="inline mr-2 h-4 w-4" /> {event.location}
@@ -457,7 +457,7 @@ const Dashboard: React.FC = () => {
                               <Calendar className="inline mr-2 h-4 w-4" /> {event.date}
                             </p>
                           </div>
-                          <div className="flex -space-x-2">
+                          <div className="flex -space-x-2 mt-2 sm:mt-0">
                             {event.friends.map((friend, i) => {
                               const username = typeof friend === 'string' ? friend : friend.username;
                               const avatarUrl = typeof friend === 'string' ? undefined : friend.avatarUrl;
@@ -564,4 +564,3 @@ const Dashboard: React.FC = () => {
     </>
   )
 }
-export default Dashboard;

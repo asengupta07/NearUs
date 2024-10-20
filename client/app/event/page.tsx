@@ -28,8 +28,11 @@ import {
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { AnimatePresence } from 'framer-motion';
+import { Notification } from '@/types'
 
-
+interface DashboardData {
+    notifications: Notification[]
+}
 interface Attendee {
     id: string;
     username: string;
@@ -123,22 +126,51 @@ export default function EventPage() {
     const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
     const [userVotes, setUserVotes] = useState<{ [key: string]: string }>({})
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+
+    const fetchNotifications = async () => {
+        try {
+            const response = await fetch('/api/dashboard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+    
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+    
+            const dashboardData: DashboardData = await response.json();
+            console.log('Received dashboard data:', dashboardData);
+            setNotifications(dashboardData.notifications);
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    };
+    
+
+    const fetchSuggestedSpots = async () => {
+        try {
+            const response = await fetch(`/api/suggested-places?eventId=${eventId}`,
+                { method: 'POST' }
+            )
+            if (!response.ok) throw new Error('Failed to fetch suggested spots')
+            const data = await response.json()
+            setSuggestedSpots(data.suggestedSpots)
+        } catch (error) {
+            console.error('Error fetching suggested spots:', error)
+        }
+    }
 
     useEffect(() => {
-        const fetchSuggestedSpots = async () => {
-            try {
-                const response = await fetch(`/api/suggested-places?eventId=${eventId}`,
-                    { method: 'POST' }
-                )
-                if (!response.ok) throw new Error('Failed to fetch suggested spots')
-                const data = await response.json()
-                setSuggestedSpots(data.suggestedSpots)
-            } catch (error) {
-                console.error('Error fetching suggested spots:', error)
-            }
-        }
         fetchSuggestedSpots()
     }, [eventId])
+
+    useEffect(() => {
+        fetchNotifications()
+    }, [email]);
 
     const toggleCard = (placeId: string) => {
         setExpandedCards(prev => ({ ...prev, [placeId]: !prev[placeId] }))
@@ -167,9 +199,9 @@ export default function EventPage() {
             });
             if (!response.ok) throw new Error('Failed to submit vote');
             const data = await response.json();
-            
+
             // Update your state with the returned updatedSpot
-            setSuggestedSpots(prev => 
+            setSuggestedSpots(prev =>
                 prev.map(spot => spot._id === spotId ? data.updatedSpot : spot)
             );
         } catch (error) {
@@ -197,7 +229,7 @@ export default function EventPage() {
             }
         }
         fetchEventData()
-    }, [eventId])
+    }, [eventId, userFlexibility])
 
     useEffect(() => {
         console.log('Attendees:', attendees)
@@ -216,22 +248,22 @@ export default function EventPage() {
         }
     }
 
-    const handleLocationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        setUserLocation(e.target.value)
-        try {
-            await fetch(`/api/update-location`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, eventId, location: e.target.value }),
-            })
-        } catch (error) {
-            console.error('Error updating location:', error)
-        }
-    }
+    // const handleLocationChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     setUserLocation(e.target.value)
+    //     try {
+    //         await fetch(`/api/update-location`, {
+    //             method: 'POST',
+    //             headers: { 'Content-Type': 'application/json' },
+    //             body: JSON.stringify({ email, eventId, location: e.target.value }),
+    //         })
+    //     } catch (error) {
+    //         console.error('Error updating location:', error)
+    //     }
+    // }
 
     const handleSearch = async () => {
         if (!selectedPlaceType) return;
-        setSearchError(null); 
+        setSearchError(null);
         try {
             const response = await fetch(`/api/search-places`,
                 {
@@ -260,25 +292,25 @@ export default function EventPage() {
     ]
 
     const mapLocations = [
-        ...attendees.filter(a => a.isAttending).map(a => ({ 
-            name: a.username, 
-            latitude: a.location.latitude, 
-            longitude: a.location.longitude, 
-            color: 'green' 
+        ...attendees.filter(a => a.isAttending).map(a => ({
+            name: a.username,
+            latitude: a.location.latitude,
+            longitude: a.location.longitude,
+            color: 'green'
         })),
-        ...searchResults.map(a => ({ 
-            name: a.name, 
-            latitude: a.coords.lat, 
-            longitude: a.coords.lng, 
-            color: 'blue' 
+        ...searchResults.map(a => ({
+            name: a.name,
+            latitude: a.coords.lat,
+            longitude: a.coords.lng,
+            color: 'blue'
         })),
     ]
 
     return (
         <>
             <style>{scrollbarStyles}</style>
-            <Navbar notifications={[]} />
-            <div className="relative min-h-[90vh] pt-20 lg:pt-10 lg:max-h-[100vh] w-full bg-gray-950 text-white">
+            <Navbar notifications={notifications} />
+            <div className="relative min-h-[90vh] pt-20 sm:pt-12 lg:max-h-[100vh] w-full bg-gray-950 text-white">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -438,7 +470,7 @@ export default function EventPage() {
                                                                     <div className="flex items-center space-x-2">
                                                                         <Clock className="w-4 h-4 text-gray-400" />
                                                                         <span className="text-sm">
-                                                                            {spot.opening_hours? spot.opening_hours.open_now ? 'Open now' : 'Closed': 'Opening hours not available'}
+                                                                            {spot.opening_hours ? spot.opening_hours.open_now ? 'Open now' : 'Closed' : 'Opening hours not available'}
                                                                         </span>
                                                                     </div>
                                                                     {spot.formatted_phone_number && (
@@ -469,39 +501,40 @@ export default function EventPage() {
                                                                             </ul>
                                                                         </div>
                                                                     )}
-                                                                    <div className="mt-4 flex items-center justify-between">
-                                                                        <div className="flex space-x-2">
-                                                                            <Button
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                onClick={() => handleVote(spot._id, 'up')}
-                                                                                className={cn(
-                                                                                    "bg-gray-700 hover:bg-gray-600",
-                                                                                    userVotes[spot._id] === 'up' && "bg-green-600 hover:bg-green-700"
-                                                                                )}
-                                                                            >
-                                                                                <ThumbsUp className="w-4 h-4 mr-1" />
-                                                                                {spot.votes.filter(v => v.vote === 'up').length}
-                                                                            </Button>
-                                                                            <Button
-                                                                                variant="outline"
-                                                                                size="sm"
-                                                                                onClick={() => handleVote(spot._id, 'down')}
-                                                                                className={cn(
-                                                                                    "bg-gray-700 hover:bg-gray-600",
-                                                                                    userVotes[spot._id] === 'down' && "bg-red-600 hover:bg-red-700"
-                                                                                )}
-                                                                            >
-                                                                                <ThumbsDown className="w-4 h-4 mr-1" />
-                                                                                {spot.votes.filter(v => v.vote === 'down').length}
-                                                                            </Button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <span className="text-sm text-gray-400">
-                                                                        Suggested by: {spot.suggested_by.username}
-                                                                    </span>
+
                                                                 </motion.div>
                                                             )}
+                                                            <div className="mt-4 flex items-center justify-between">
+                                                                <div className="flex space-x-2">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => handleVote(spot._id, 'up')}
+                                                                        className={cn(
+                                                                            "bg-gray-700 hover:bg-gray-600",
+                                                                            userVotes[spot._id] === 'up' && "bg-green-600 hover:bg-green-700"
+                                                                        )}
+                                                                    >
+                                                                        <ThumbsUp className="w-4 h-4 mr-1" />
+                                                                        {spot.votes.filter(v => v.vote === 'up').length}
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => handleVote(spot._id, 'down')}
+                                                                        className={cn(
+                                                                            "bg-gray-700 hover:bg-gray-600",
+                                                                            userVotes[spot._id] === 'down' && "bg-red-600 hover:bg-red-700"
+                                                                        )}
+                                                                    >
+                                                                        <ThumbsDown className="w-4 h-4 mr-1" />
+                                                                        {spot.votes.filter(v => v.vote === 'down').length}
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                            <span className="text-sm text-gray-400">
+                                                                Suggested by: {spot.suggested_by.username}
+                                                            </span>
                                                         </AnimatePresence>
                                                     </CardContent>
                                                 </Card>
@@ -549,7 +582,7 @@ export default function EventPage() {
                                 {searchResults.length > 0 && (
                                     <div className="mt-4">
                                         <h3 className="text-lg font-semibold mb-2">Search Results</h3>
-                                        <ResultComponent eventId={eventId} searchResults={searchResults} userEmail={email} />
+                                        <ResultComponent eventId={eventId} searchResults={searchResults} userEmail={email} callBack={fetchSuggestedSpots} />
                                     </div>
                                 )}
                             </div>

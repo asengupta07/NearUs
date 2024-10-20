@@ -39,9 +39,10 @@ interface ResultComponentProps {
   searchResults: FormattedPlace[];
   eventId: string | null;
   userEmail: string | null;
+  callBack: () => void;
 }
 
-export default function ResultComponent({ searchResults, eventId, userEmail }: ResultComponentProps) {
+export default function ResultComponent({ searchResults, eventId, userEmail, callBack }: ResultComponentProps) {
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
   const [addingToEvent, setAddingToEvent] = useState<{ [key: string]: boolean }>({})
   const { toast } = useToast()
@@ -115,6 +116,7 @@ export default function ResultComponent({ searchResults, eventId, userEmail }: R
       })
     } finally {
       setAddingToEvent(prev => ({ ...prev, [place.place_id]: false }))
+      callBack()
     }
   }
 
