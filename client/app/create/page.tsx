@@ -285,7 +285,7 @@ export default function CreateNewPlan() {
                     transition={{ duration: 0.5 }}
                     className="relative z-20 w-full p-4 sm:p-6 lg:p-8 flex justify-center"
                 >
-                    <Card className="bg-gradient-to-br flex-grow from-gray-800 to-gray-900 border-none shadow-lg max-w-7xl mx-20">
+                    <Card className="bg-gradient-to-br flex-grow from-gray-800 to-gray-900 border-none shadow-lg max-w-4xl mx-20">
                         <CardHeader>
                             <CardTitle className="text-3xl font-bold">
                                 <span className={cn(
