@@ -15,7 +15,7 @@ export async function POST(request: Request) {
         const data = await request.json();
         console.log('Received JSON data:', JSON.stringify(data, null, 2));
 
-        const { email, location, avatarUrl, ...updates } = data;
+        const { email, location, avatarUrl, coordinates, ...updates } = data;
 
         // Validate email input
         if (!email) {
@@ -31,8 +31,8 @@ export async function POST(request: Request) {
         } 
 
         // Handle location update
-        if (location) {
-            const [latitude, longitude] = location.split(',').map(Number);
+        if (coordinates) {
+            const [latitude, longitude] = coordinates.split(',').map(Number);
             updateData.location = {
                 type: 'Point',
                 coordinates: [longitude, latitude]

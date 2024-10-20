@@ -46,6 +46,7 @@ export default function Component() {
   const { email, logout } = useAuth()
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isRemovingAvatar, setIsRemovingAvatar] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -69,18 +70,26 @@ export default function Component() {
       const response = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
       });
+
       if (!response.ok) throw new Error('Failed to fetch profile');
       const data = await response.json();
-      setProfile(data);
-      setEditedProfile(data);
+
+      console.log('Received profile data:', data);
+      const [lat, long] = data.location.split(", ").map(Number);
+      console.log('Coordinates:', lat, long);
+      const locationName = await fetchAddressFromCoordinates(lat, long);
+
+      setProfile({ ...data, location: locationName });
+      setEditedProfile({ ...data, location: locationName });
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const fetchNotifications = async () => {
     try {
@@ -173,8 +182,10 @@ export default function Component() {
       if (!response.ok) throw new Error('Failed to update profile');
 
       const data = await response.json();
-      setProfile(data);
-      setEditedProfile(data);
+      const [lat, long] = data.location.split(", ").map(Number);
+      const locationName = await fetchAddressFromCoordinates(lat, long);
+      setProfile({ ...data, location: locationName });
+      setEditedProfile({ ...data, location: locationName });
       setIsEditing(false);
       return data;
     } catch (error) {
@@ -194,6 +205,18 @@ export default function Component() {
     }
   }
 
+  const fetchAddressFromCoordinates = async (latitude: number, longitude: number) => {
+    const response = await fetch('/api/getAddress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude, longitude })
+    });
+    const data = await response.json();
+    setAddress(data.address);
+    return data.address;
+  }
+
+
   const getCurrentLocation = async () => {
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser');
@@ -209,11 +232,7 @@ export default function Component() {
 
       const { latitude, longitude } = position.coords;
 
-      const response = await fetch(
-        `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=YOUR_API_KEY`
-      );
-      const data = await response.json();
-      const locationName = data.results[0]?.formatted || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      const locationName = await fetchAddressFromCoordinates(latitude, longitude);
 
       if (editedProfile) {
         setEditedProfile({
@@ -221,6 +240,7 @@ export default function Component() {
           location: locationName,
           coordinates: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
         });
+        console.log('Location updated:', locationName, `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
       }
     } catch (error) {
       console.error('Error getting location:', error);
