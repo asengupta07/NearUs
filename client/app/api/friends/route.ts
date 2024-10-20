@@ -3,11 +3,11 @@ import mongoose from 'mongoose';
 import { UserSchema, UserFriendSchema } from '@/app/_models/schema';
 import connectToDatabase from '@/app/_middleware/mongodb';
 
-const User = mongoose.models.User || mongoose.model('User', UserSchema);
-const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
-
 export async function GET(req: NextRequest) {
     await connectToDatabase();
+    
+    const User = mongoose.models.User || mongoose.model('User', UserSchema);
+    const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
     const email = req.nextUrl.searchParams.get('email');
 
     if (!email) {
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        return NextResponse.json({friends, me}, { status: 200 });
+        return NextResponse.json({ friends, me }, { status: 200 });
     } catch (error) {
         console.error('Friends API Error:', error);
         return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
