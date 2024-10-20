@@ -17,7 +17,7 @@ import { Notification } from '@/types'
 
 interface DashboardData {
     notifications: Notification[]
-  }
+}
 
 interface Event {
     id: string;
@@ -77,11 +77,11 @@ const EventsPage: React.FC = () => {
                 },
                 body: JSON.stringify({ email })
             });
-    
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-    
+
             const dashboardData: DashboardData = await response.json();
             console.log('Received dashboard data:', dashboardData);
             setNotifications(dashboardData.notifications);
@@ -89,7 +89,7 @@ const EventsPage: React.FC = () => {
             console.error('Error fetching notifications:', error);
         }
     };
-    
+
 
     useEffect(() => {
         fetchNotifications();
@@ -143,18 +143,18 @@ const EventsPage: React.FC = () => {
                 },
                 body: JSON.stringify({ invitationId, accept, email }),
             });
-    
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to handle invitation');
             }
-    
+
             const updatedInvitation = await response.json();
-            
+
             setInvitations(prevInvitations =>
                 prevInvitations.filter(inv => inv.id !== invitationId)
             );
-    
+
             if (accept && updatedInvitation.id) {
                 setEventsData(prevData => ({
                     ...prevData,
@@ -162,7 +162,7 @@ const EventsPage: React.FC = () => {
                 }));
             }
         } catch (err) {
-            const error = err as Error; 
+            const error = err as Error;
             console.error('Failed to handle invitation:', error);
             setError(error.message || 'Failed to process invitation. Please try again.');
         }
@@ -264,36 +264,38 @@ const EventsPage: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    whileHover={{ scale: 1.02 }}
-                    className="flex items-center justify-between p-4 bg-gray-800 rounded-lg transition-transform duration-60"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gray-800 rounded-lg transition-all duration-300 hover:bg-gray-750"
                 >
-                    <div className="flex-grow" onClick={() => router.push(`/event?id=${event.id}`)}>
-                        <h3 className="font-semibold text-white">{event.title}</h3>
-                        <p className="text-sm text-gray-300">
+                    <div
+                        className="flex-grow mb-4 sm:mb-0 cursor-pointer"
+                        onClick={() => router.push(`/event?id=${event.id}`)}
+                    >
+                        <h3 className="font-semibold text-white text-lg mb-2">{event.title}</h3>
+                        <p className="text-sm text-gray-300 mb-1">
                             <MapPin className="inline mr-1 h-4 w-4" /> {event.location}
                         </p>
                         <p className="text-sm text-gray-300">
                             <Calendar className="inline mr-1 h-4 w-4" /> {event.date}
                         </p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <div className="flex -space-x-2">
+                    <div className="flex flex-col-reverse sm:flex-row items-start sm:items-center space-y-4 space-y-reverse sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                        <div className="flex -space-x-2 mb-4 sm:mb-0">
                             {event.friends.map((friend, i) => (
-                                <Avatar key={i} className="border-2 border-gray-800">
+                                <Avatar key={i} className="border-2 border-gray-800 w-8 h-8 sm:w-10 sm:h-10">
                                     {friend.avatarUrl ? (
                                         <AvatarImage src={friend.avatarUrl} alt={friend.username} />
                                     ) : (
-                                        <AvatarFallback>{friend.username ? friend.username[0] : '?'}</AvatarFallback>
+                                        <AvatarFallback>{friend.username ? friend.username[0] : "?"}</AvatarFallback>
                                     )}
                                 </Avatar>
                             ))}
                         </div>
-                        {type === 'upcoming' ? (
+                        {type === "upcoming" ? (
                             <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleRemoveFromEvent(event.id)}
-                                className="bg-red-600 hover:bg-red-700"
+                                className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
                             >
                                 <LogOut className="mr-2 h-4 w-4" /> Leave
                             </Button>
@@ -302,7 +304,7 @@ const EventsPage: React.FC = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleDeletePastEvent(event.id)}
-                                className="bg-gray-600 hover:bg-gray-700"
+                                className="bg-gray-600 hover:bg-gray-700 text-white w-full sm:w-auto"
                             >
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                             </Button>
@@ -344,7 +346,7 @@ const EventsPage: React.FC = () => {
         </motion.div>
     );
 
-    
+
 
     if (loading) {
         return <LoadingState message="Loading your events..." submessage="Preparing your upcoming and past events" />
