@@ -341,9 +341,9 @@ export default function Component() {
           transition={{ duration: 0.5 }}
           className="relative z-20 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8"
         >
-          <main className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <main className="flex flex-col lg:flex-row gap-8">
             {/* Left Column */}
-            <div className="lg:col-span-3 flex flex-col space-y-8">
+            <div className="lg:flex-grow lg:w-3/4 flex flex-col space-y-8">
               {/* Welcome Message and Start Planning Button */}
               <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg">
                 <CardContent className="pt-8 pb-6 px-6">
@@ -354,6 +354,7 @@ export default function Component() {
                     )}>
                       Welcome back, User!
                     </span>
+                
                   </h2>
                   <p className="text-gray-300 mb-6 text-base sm:text-lg">Ready to plan your next exciting meetup?</p>
                   <Link href="/create">
@@ -429,8 +430,9 @@ export default function Component() {
                   </CardContent>
                 </Card>
               }
+              
               {/* Upcoming Events Section */}
-              <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg">
+              <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg flex-grow">
                 <CardHeader className='px-6 pt-6 pb-2'>
                   <CardTitle className="text-white text-2xl flex items-center">
                     <Calendar className="mr-3 h-6 w-6" />
@@ -486,7 +488,7 @@ export default function Component() {
             </div>
 
             {/* Right Column */}
-            <div className="space-y-8 lg:h-full flex flex-col">
+            <div className="lg:w-1/4 space-y-8 flex flex-col">
               {/* Friends List */}
               <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg flex-grow">
                 <CardHeader>
@@ -532,6 +534,7 @@ export default function Component() {
                   )}
                 </CardContent>
               </Card>
+              
               {/* Past Events Section */}
               <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg flex-grow">
                 <CardHeader>

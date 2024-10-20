@@ -1,14 +1,12 @@
-"use server"
-
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
-import { UserSchema, EventSchema, UserFriendSchema, UserEventSchema, NotificationSchema } from '@/app/_models/schema';
+import { UserSchema, EventSchema, UserEventSchema, UserFriendSchema, NotificationSchema } from '@/app/_models/schema';
 import connectToDatabase from '@/app/_middleware/mongodb';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);
-const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
 const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserEventSchema);
+const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
 const Notification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
 
 interface DashboardRequestBody {
@@ -20,7 +18,12 @@ interface EventData {
     title: string;
     location: string;
     date: string;
-    friends: string[];
+    friends: FriendData[];
+}
+
+interface FriendData {
+    username: string;
+    avatarUrl: string;
 }
 
 interface NotificationData {
@@ -44,15 +47,10 @@ interface NotificationData {
     status: string;
 }
 
-interface FriendData {
-    username: string;
-    avatarUrl: string;
-}
-
 interface DashboardData {
     upcomingEvents: EventData[];
     pastEvents: EventData[];
-    friends: FriendData[];  
+    friends: FriendData[];
     notifications: NotificationData[];
 }
 
@@ -154,7 +152,7 @@ async function handler(req: NextRequest) {
             populate: {
                 path: 'attendees',
                 model: 'User',
-                select: 'username'
+                select: 'username avatarUrl'
             }
         });
 
@@ -171,7 +169,10 @@ async function handler(req: NextRequest) {
                 title: event.eventName,
                 location: event.location,
                 date: event.eventDate.toISOString().split('T')[0],
-                friends: event.attendees.map((attendee: { username: string }) => attendee.username)
+                friends: event.attendees.map((attendee: { username: string; avatarUrl: string }) => ({
+                    username: attendee.username,
+                    avatarUrl: attendee.avatarUrl
+                }))
             };
 
             if (event.eventDate > currentDate) {
