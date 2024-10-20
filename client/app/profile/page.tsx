@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Edit2, Save, Camera, MapPin, Mail, User, Loader2, LogOut, Navigation, FileText, Trash2 } from 'lucide-react'
+import { Edit2, Save, Camera, MapPin, Mail, User, Loader2, LogOut, Navigation, FileText, Trash2, Search } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -35,6 +35,7 @@ interface Profile {
 
 export default function Component() {
   const [isEditing, setIsEditing] = useState(false)
+  const [isGeocodingLoading, setIsGeocodingLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [editedProfile, setEditedProfile] = useState<Profile | null>(null)
@@ -47,6 +48,50 @@ export default function Component() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isRemovingAvatar, setIsRemovingAvatar] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
+
+  const geocodeAddress = async (address: string | number | boolean) => {
+    setIsGeocodingLoading(true);
+    try {
+      const encodedAddress = encodeURIComponent(address);
+      const response = await fetch(`https://api.olamaps.io/places/v1/geocode?address=${encodedAddress}&language=en&api_key=G5RJX7p2Bfa2UWJuE73IcyfNokde0j4V9LaoPB9t`);
+
+      if (!response.ok) {
+        throw new Error('Geocoding request failed');
+      }
+
+      const data = await response.json();
+
+      if (data.geocodingResults && data.geocodingResults.length > 0) {
+        const { lat, lng } = data.geocodingResults[0].geometry.location;
+        return { latitude: lat, longitude: lng };
+      } else {
+        throw new Error('No geocoding results found');
+      }
+    } catch (error) {
+      console.error('Error geocoding address:', error);
+      return null;
+    } finally {
+      setIsGeocodingLoading(false);
+    }
+  };
+
+  const handleLocationChange = (e: { target: { value: any } }) => {
+    const newLocation = e.target.value;
+    setEditedProfile(prev => prev ? { ...prev, location: newLocation } : null);
+  };
+
+  const handleGeocodeClick = async () => {
+    if (editedProfile?.location) {
+      const coordinates = await geocodeAddress(editedProfile.location);
+      if (coordinates) {
+        setEditedProfile(prev => prev ? {
+          ...prev,
+          coordinates: `${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`
+        } : null);
+      }
+    }
+  };
+
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -195,6 +240,8 @@ export default function Component() {
       setIsSaving(false);
     }
   };
+
+
 
   const handleLogout = () => {
     try {
@@ -541,17 +588,43 @@ export default function Component() {
                           </Select>
 
                           {locationType === 'manual' ? (
-                            <Input
-                              id="location"
-                              value={editedProfile?.location || ''}
-                              onChange={(e) => setEditedProfile(prev => prev ? {
-                                ...prev,
-                                location: e.target.value,
-                                coordinates: undefined
-                              } : null)}
-                              placeholder="Enter your location (e.g., New York, London)"
-                              className="bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 text-left text-base sm:text-lg"
-                            />
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Input
+                                  id="location"
+                                  value={editedProfile?.location || ''}
+                                  onChange={handleLocationChange}
+                                  placeholder="Enter your location (e.g., New York, London)"
+                                  className="flex-grow bg-gray-800/50 text-gray-200 border-gray-700 rounded-lg focus:border-purple-600 text-left text-base sm:text-lg"
+                                />
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        onClick={handleGeocodeClick}
+                                        disabled={isGeocodingLoading || !editedProfile?.location}
+                                        className="bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 hover:from-cyan-600 hover:via-purple-700 hover:to-pink-600 transition-all duration-200"
+                                      >
+                                        {isGeocodingLoading ? (
+                                          <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                                        ) : (
+                                          <Search className="h-4 w-4 sm:h-5 sm:w-5" />
+                                        )}
+                                        <span className="ml-2 hidden sm:inline">Get Coordinates</span>
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Get coordinates for the entered location</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                              {editedProfile?.coordinates && (
+                                <p className="text-xs sm:text-sm text-gray-400">
+                                  Coordinates: {editedProfile.coordinates}
+                                </p>
+                              )}
+                            </div>
                           ) : (
                             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                               <Input
