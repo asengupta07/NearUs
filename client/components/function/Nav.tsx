@@ -6,18 +6,29 @@ import Link from "next/link"
 import { useRouter } from 'next/navigation'
 import { FaMapLocationDot } from "react-icons/fa6"
 import { Bell, PlusCircle, Clock, Users, Menu, X } from 'lucide-react'
-import { Toaster, toast } from 'sonner'
+import { Toaster } from 'sonner'
 import { Notification } from '@/types'
 import { motion, AnimatePresence } from 'framer-motion'
-import { IoChatbubblesOutline } from "react-icons/io5";
+import { IoChatbubblesOutline } from "react-icons/io5"
+import NotificationsModal from '@/components/function/NotificationsModal'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
 interface SignedInNavbarProps {
-  notifications: Notification[]
+    notifications?: Notification[]
 }
 
-export default function Navbar({ notifications }: SignedInNavbarProps) {
+export default function Navbar({
+    notifications: initialNotifications = [],
+}: SignedInNavbarProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isGlass, setIsGlass] = useState(false)
+    const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false)
+    const [notifications, setNotifications] = useState(initialNotifications)
     const router = useRouter()
+
+    useEffect(() => {
+        setNotifications(initialNotifications)
+    }, [initialNotifications])
 
     useEffect(() => {
         const handleScroll = () => {
@@ -33,24 +44,11 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
     }
 
     const handleNotificationClick = () => {
-        if (notifications.length === 0) {
-            toast.info("No new notifications", { duration: 2000 })
-        } else {
-            toast(
-                <div className="w-full">
-                    <h3 className="font-bold text-lg mb-2">Notifications</h3>
-                    <ul className="space-y-2">
-                        {notifications.map((notification) => (
-                            <li key={notification.id} className="text-sm">
-                                {notification.message}
-                            </li>
-                        ))}
-                    </ul>
-                </div>,
-                { duration: 2000 }
-            )
-        }
+        setIsNotificationsModalOpen(true)
     }
+
+
+    const unreadNotificationsCount = notifications.length
 
     const navItems = [
         { href: "/chat", icon: IoChatbubblesOutline, label: "Chat" },
@@ -62,9 +60,8 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
     return (
         <>
             <motion.nav
-                className={`fixed h-[10vh] top-0 left-0 right-0 z-50 px-6 py-2 transition-all duration-300 ease-in-out ${
-                    isGlass ? 'bg-white/70 dark:bg-gray-900/70 backdrop-blur-md' : 'bg-transparent'
-                } shadow-md flex items-center`}
+                className={`fixed h-[10vh] top-0 left-0 right-0 z-50 px-6 py-2 transition-all duration-300 ease-in-out ${isGlass ? 'bg-white/70 dark:bg-gray-900/70 backdrop-blur-md' : 'bg-transparent'
+                    } shadow-md flex items-center`}
                 initial={{ y: -100 }}
                 animate={{ y: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -106,9 +103,9 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
                                 className="relative hover:bg-transparent"
                             >
                                 <Bell className="w-5 h-5" />
-                                {notifications.length > 0 && (
+                                {unreadNotificationsCount > 0 && (
                                     <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                                        {notifications.length}
+                                        {unreadNotificationsCount}
                                     </span>
                                 )}
                             </Button>
@@ -117,7 +114,7 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
-                            <Button 
+                            <Button
                                 className="relative overflow-hidden group px-4 py-2"
                                 onClick={handleProfileClick}
                             >
@@ -139,7 +136,7 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
             </motion.nav>
             <AnimatePresence>
                 {isMenuOpen && (
-                    <motion.div 
+                    <motion.div
                         className="fixed inset-0 z-40 bg-white dark:bg-gray-900 pt-[10vh]"
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
@@ -167,21 +164,22 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
                             >
                                 <Button
                                     variant="ghost"
-                                    onClick={() => {
-                                        handleNotificationClick()
-                                        setIsMenuOpen(false)
-                                    }}
-                                    className="w-full justify-start hover:bg-transparent"
+                                    onClick={handleNotificationClick}
+                                    className="relative hover:bg-transparent"
                                 >
-                                    <Bell className="w-5 h-5 mr-2" />
-                                    Notifications
+                                    <Bell className="w-5 h-5" />
+                                    {unreadNotificationsCount > 0 && (
+                                        <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                                            {unreadNotificationsCount}
+                                        </span>
+                                    )}
                                 </Button>
                             </motion.div>
                             <motion.div
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
-                                <Button 
+                                <Button
                                     className="w-full relative overflow-hidden group px-4 py-2"
                                     onClick={() => {
                                         setIsMenuOpen(false)
@@ -200,6 +198,11 @@ export default function Navbar({ notifications }: SignedInNavbarProps) {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <NotificationsModal
+                isOpen={isNotificationsModalOpen}
+                onClose={() => setIsNotificationsModalOpen(false)}
+                notifications={notifications}
+            />
             <Toaster position="bottom-right" />
         </>
     )

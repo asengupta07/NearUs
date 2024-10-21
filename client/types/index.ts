@@ -7,7 +7,7 @@ export interface NotificationSender {
 
 export interface Notification {
     id: string;
-    type: 'NEW_FRIEND_REQUEST' | 'FRIEND_REQUEST_ACCEPTED' | 'FRIEND_REQUEST_REJECTED' | 'FRIEND_REQUEST_REMOVED' | 'EVENT_CREATED' | 'EVENT_INVITATION_ACCEPTED' | 'EVENT_INVITATION_DECLINED' | 'EVENT_UPDATED' | 'EVENT_CANCELLED';
+    type: 'NEW_FRIEND_REQUEST' | 'FRIEND_REQUEST_ACCEPTED' | 'FRIEND_REQUEST_REJECTED' | 'FRIEND_REMOVED' | 'EVENT_CREATED' | 'EVENT_INVITATION_ACCEPTED' | 'EVENT_INVITATION_DECLINED' | 'EVENT_UPDATED' | 'EVENT_CANCELLED' | 'locationSuggestion';
     message: string;
     sender: NotificationSender;
     event?: {

@@ -19,27 +19,93 @@ async function connectDB() {
 const Notification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
+interface NotificationData {
+    id: string;
+    message: string;
+    type: string;
+    sender: {
+        id: string;
+        username: string;
+        email: string;
+        avatarUrl: string;
+    } | null;
+    event: {
+        id: string;
+        name: string;
+        date: string;
+        location: string;
+    } | null;
+    createdAt: string;
+    read: boolean;
+    status: string;
+}
+
 export async function GET(req: NextRequest) {
+    console.log('Notification GET request received');
     await connectDB();
     const userEmail = req.nextUrl.searchParams.get('userId');
 
     if (!userEmail) {
+        console.log('User email missing in request');
         return NextResponse.json({ message: 'User email is required' }, { status: 400 });
     }
 
     try {
+        console.log(`Fetching user with email: ${userEmail}`);
         const user = await User.findOne({ email: userEmail });
         if (!user) {
+            console.log('User not found');
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
 
-        const notifications = await Notification.find({ recipient: user._id })
-            .populate('sender', 'username')
-            .populate('eventId', 'eventName')
-            .sort({ createdAt: -1 })
-            .limit(50);
+        console.log(`Fetching notifications for user: ${user._id}`);
+        const notifications = await Notification.find({
+            recipient: user._id,
+            type: {
+                $in: [
+                    'FRIEND_REQUEST_ACCEPTED',
+                    'FRIEND_REQUEST_REJECTED',
+                    'NEW_FRIEND_REQUEST',
+                    'FRIEND_REMOVED',
+                    'EVENT_CREATED',
+                    'EVENT_INVITATION_ACCEPTED',
+                    'EVENT_INVITATION_DECLINED',
+                    'EVENT_UPDATED',
+                    'EVENT_CANCELLED'
+                ]
+            }
+        })
+        .populate('sender', 'username email avatarUrl')
+        .populate('eventId', 'eventName eventDate location')
+        .sort({ createdAt: -1 })
+        .limit(50);
 
-        return NextResponse.json(notifications, { status: 200 });
+        console.log(`Fetched ${notifications.length} notifications`);
+
+        const formattedNotifications: NotificationData[] = notifications.map(notification => ({
+            id: notification._id.toString(),
+            message: notification.message,
+            type: notification.type,
+            sender: notification.sender ? {
+                id: notification.sender._id.toString(),
+                username: notification.sender.username,
+                email: notification.sender.email,
+                avatarUrl: notification.sender.avatarUrl
+            } : null,
+            event: notification.eventId ? {
+                id: notification.eventId._id.toString(),
+                name: notification.eventId.eventName,
+                date: notification.eventId.eventDate.toISOString(),
+                location: notification.eventId.location
+            } : null,
+            createdAt: notification.createdAt.toISOString(),
+            read: notification.read,
+            status: notification.status
+        }));
+
+        console.log('Formatted notifications:', formattedNotifications);
+
+        return NextResponse.json(formattedNotifications, { status: 200 });
     } catch (error) {
         console.error('Fetch Notifications API Error:', error);
         return NextResponse.json({ 
@@ -91,6 +157,8 @@ export async function PUT(req: NextRequest) {
 
     try {
         const { notificationIds, action } = await req.json();
+
+        console.log('Received request:', { notificationIds, action });
         
         if (!notificationIds || !action) {
             return NextResponse.json({ 
@@ -98,30 +166,28 @@ export async function PUT(req: NextRequest) {
             }, { status: 400 });
         }
 
-        let update = {};
+        let result;
         switch (action) {
             case 'markAsRead':
-                update = { read: true };
-                break;
+                result = await Notification.updateMany(
+                    { _id: { $in: notificationIds } },
+                    { $set: { read: true } }
+                );
+                console.log('Mark as read result:', result);
+                return NextResponse.json({ 
+                    message: 'Notifications marked as read successfully',
+                    modifiedCount: result.modifiedCount
+                }, { status: 200 });
             case 'delete':
-                const deleteResult = await Notification.deleteMany({ _id: { $in: notificationIds } });
+                result = await Notification.deleteMany({ _id: { $in: notificationIds } });
+                console.log('Delete result:', result);
                 return NextResponse.json({ 
                     message: 'Notifications deleted successfully',
-                    deletedCount: deleteResult.deletedCount 
+                    deletedCount: result.deletedCount 
                 }, { status: 200 });
             default:
                 return NextResponse.json({ message: 'Invalid action' }, { status: 400 });
         }
-
-        const result = await Notification.updateMany(
-            { _id: { $in: notificationIds } },
-            { $set: update }
-        );
-
-        return NextResponse.json({ 
-            message: 'Notifications updated successfully',
-            modifiedCount: result.modifiedCount
-        }, { status: 200 });
     } catch (error) {
         console.error('Update Notification API Error:', error);
         return NextResponse.json({ 

@@ -32,10 +32,6 @@ interface ApiResponse {
   friends: UserData[]
 }
 
-interface DashboardData {
-  notifications: Notification[]
-}
-
 export default function ChatPage() {
   const { email, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -50,32 +46,23 @@ export default function ChatPage() {
   
   const fetchNotifications = async () => {
     try {
-        const response = await fetch('/api/dashboard', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const dashboardData: DashboardData = await response.json();
-        console.log('Received dashboard data:', dashboardData);
-        setNotifications(dashboardData.notifications);
+      const response = await fetch(`/api/notifications?userId=${encodeURIComponent(email || '')}`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const notificationsData: Notification[] = await response.json()
+      console.log('Received notifications:', notificationsData)
+      setNotifications(notificationsData)
     } catch (error) {
-        console.error('Error fetching notifications:', error);
+      console.error('Error fetching notifications:', error)
     }
-};
+  }
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login')
+      router.push('/auth')
       return
     }
-    
 
     async function fetchUserData() {
       if (!email) return
@@ -102,8 +89,8 @@ export default function ChatPage() {
 
     if (!authLoading && email) {
       fetchUserData()
+      fetchNotifications()
     }
-    fetchNotifications()
   }, [email, authLoading, isAuthenticated, router])
 
   const filteredFriends = friends.filter(friend =>
@@ -144,7 +131,7 @@ export default function ChatPage() {
   if (!currentUser) {
     return (
       <div className="flex flex-col h-screen bg-gray-950">
-        <Navbar notifications={[]} />
+        <Navbar notifications={notifications} />
         <div className="flex items-center justify-center flex-grow">
           <div className="text-center p-8 bg-gray-900/50 backdrop-blur-lg rounded-lg border border-gray-800">
             <h1 className="text-xl font-bold text-yellow-500 mb-4">Unable to load user data</h1>

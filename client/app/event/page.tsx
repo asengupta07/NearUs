@@ -25,14 +25,11 @@ import {
     Globe,
     ThumbsUp,
     ThumbsDown
-} from 'lucide-react';
-import { Badge } from "@/components/ui/badge";
-import { AnimatePresence } from 'framer-motion';
-import { Notification } from '@/types'
+} from 'lucide-react'
+import { Badge } from "@/components/ui/badge"
+import { AnimatePresence } from 'framer-motion'
+import { Notification, Event, Message } from '@/types'
 
-interface DashboardData {
-    notifications: Notification[]
-}
 interface Attendee {
     id: string;
     username: string;
@@ -115,7 +112,7 @@ export default function EventPage() {
     const searchParams = useSearchParams()
     const eventId = searchParams.get('id')
     const [attendees, setAttendees] = useState<Attendee[]>([])
-    const [eventDetails, setEventDetails] = useState<any>(null)
+    const [eventDetails, setEventDetails] = useState<Event | null>(null)
     const [userFlexibility, setUserFlexibility] = useState(5)
     const [userLocation, setUserLocation] = useState('')
     const [selectedPlaceType, setSelectedPlaceType] = useState('')
@@ -125,31 +122,46 @@ export default function EventPage() {
     const [suggestedSpots, setSuggestedSpots] = useState<SuggestedSpot[]>([])
     const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
     const [userVotes, setUserVotes] = useState<{ [key: string]: string }>({})
-    const [searchError, setSearchError] = useState<string | null>(null);
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [searchError, setSearchError] = useState<string | null>(null)
+    const [notifications, setNotifications] = useState<Notification[]>([])
+    const [notificationError, setNotificationError] = useState<string | null>(null)
 
     const fetchNotifications = async () => {
         try {
-            const response = await fetch('/api/dashboard', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email })
-            });
-    
+            const response = await fetch(`/api/notifications?userId=${email}`);
             if (!response.ok) {
+                if (response.status === 404) {
+                    console.warn('Notifications endpoint not found. This might be expected if the feature is not implemented yet.');
+                    setNotifications([]);
+                    return;
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-    
-            const dashboardData: DashboardData = await response.json();
-            console.log('Received dashboard data:', dashboardData);
-            setNotifications(dashboardData.notifications);
+            const data = await response.json();
+            setNotifications(data as Notification[]);
         } catch (error) {
             console.error('Error fetching notifications:', error);
+            setNotificationError('Failed to fetch notifications. Please try again later.');
         }
     };
-    
+
+    const fetchEventData = async () => {
+        try {
+            const response = await fetch(`/api/event/${eventId}`)
+            if (!response.ok) throw new Error('Failed to fetch event data')
+            const data = await response.json()
+            setEventDetails({
+                id: data.eventDetails.id,
+                title: data.eventDetails.title,
+                location: data.eventDetails.location,
+                date: data.eventDetails.date,
+                friends: data.eventDetails.friends
+            } as Event)
+            setAttendees(data.attendees as Attendee[])
+        } catch (error) {
+            console.error('Error fetching event data:', error)
+        }
+    }
 
     const fetchSuggestedSpots = async () => {
         try {
@@ -165,12 +177,20 @@ export default function EventPage() {
     }
 
     useEffect(() => {
-        fetchSuggestedSpots()
+        if (email) {
+            fetchNotifications()
+        }
+    }, [email])
+
+    useEffect(() => {
+        if (eventId) {
+            fetchEventData()
+        }
     }, [eventId])
 
     useEffect(() => {
-        fetchNotifications()
-    }, [email]);
+        fetchSuggestedSpots()
+    }, [eventId])
 
     const toggleCard = (placeId: string) => {
         setExpandedCards(prev => ({ ...prev, [placeId]: !prev[placeId] }))
@@ -215,15 +235,8 @@ export default function EventPage() {
                 const response = await fetch(`/api/event/${eventId}`)
                 if (!response.ok) throw new Error('Failed to fetch event data')
                 const data = await response.json()
-                // console.log('recieved data', data.attendees)
-                data.attendees.forEach((attendee: Attendee) => {
-                    // console.log('attendee', attendee.email, email, attendee.email === email)
-                    if (attendee.email === email) {
-                        setUserFlexibility(attendee.flexibility)
-                    }
-                });
-                setEventDetails(data.eventDetails)
-                setAttendees(data.attendees)
+                setEventDetails(data.eventDetails as Event)
+                setAttendees(data.attendees as Attendee[])
             } catch (error) {
                 console.error('Error fetching event data:', error)
             }
@@ -310,6 +323,11 @@ export default function EventPage() {
         <>
             <style>{scrollbarStyles}</style>
             <Navbar notifications={notifications} />
+            {notificationError && (
+                <div className="bg-red-500 text-white p-2 text-center">
+                    {notificationError}
+                </div>
+            )}
             <div className="relative min-h-[90vh] pt-20 sm:pt-12 lg:max-h-[100vh] w-full bg-gray-950 text-white">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
@@ -324,7 +342,7 @@ export default function EventPage() {
                                     "bg-gradient-to-b from-cyan-400 via-purple-500 to-yellow-500 bg-clip-text text-transparent",
                                     "animate-text-gradient"
                                 )}>
-                                    {eventDetails?.name || 'Event Details'}
+                                    {eventDetails?.title || 'Event Details'}
                                 </span>
                             </CardTitle>
                         </CardHeader>

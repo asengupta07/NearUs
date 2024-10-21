@@ -15,10 +15,6 @@ import { useRouter } from 'next/navigation'
 import LoadingState from '@/components/LoadingState/LoadingState'
 import { Notification } from '@/types'
 
-interface DashboardData {
-    notifications: Notification[]
-}
-
 interface Event {
     id: string;
     title: string;
@@ -70,26 +66,26 @@ const EventsPage: React.FC = () => {
 
     const fetchNotifications = async () => {
         try {
-            const response = await fetch('/api/dashboard', {
-                method: 'POST',
+            if (!email) return;
+            
+            const response = await fetch(`/api/notifications?userId=${encodeURIComponent(email)}`, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email })
+                }
             });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const dashboardData: DashboardData = await response.json();
-            console.log('Received dashboard data:', dashboardData);
-            setNotifications(dashboardData.notifications);
+            const notificationsData: Notification[] = await response.json();
+            console.log('Received notifications:', notificationsData);
+            setNotifications(notificationsData);
         } catch (error) {
             console.error('Error fetching notifications:', error);
         }
     };
-
 
     useEffect(() => {
         fetchNotifications();

@@ -1,13 +1,12 @@
 import { NextResponse, NextRequest } from 'next/server';
 import mongoose from 'mongoose';
-import { UserSchema, EventSchema, UserEventSchema, UserFriendSchema, NotificationSchema } from '@/app/_models/schema';
+import { UserSchema, EventSchema, UserEventSchema, UserFriendSchema } from '@/app/_models/schema';
 import connectToDatabase from '@/app/_middleware/mongodb';
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);
 const UserEvent = mongoose.models.UserEvent || mongoose.model('UserEvent', UserEventSchema);
 const UserFriend = mongoose.models.UserFriend || mongoose.model('UserFriend', UserFriendSchema);
-const Notification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
 
 interface DashboardRequestBody {
     email: string;
@@ -26,32 +25,10 @@ interface FriendData {
     avatarUrl: string;
 }
 
-interface NotificationData {
-    id: string;
-    message: string;
-    type: string;
-    sender: {
-        id: string;
-        username: string;
-        email: string;
-        avatarUrl: string;
-    } | null;
-    event: {
-        id: string;
-        name: string;
-        date: string;
-        location: string;
-    } | null;
-    createdAt: string;
-    read: boolean;
-    status: string;
-}
-
 interface DashboardData {
     upcomingEvents: EventData[];
     pastEvents: EventData[];
     friends: FriendData[];
-    notifications: NotificationData[];
 }
 
 async function handler(req: NextRequest) {
@@ -93,54 +70,6 @@ async function handler(req: NextRequest) {
             avatarUrl: uf.friendId.avatarUrl
         }));        
         console.log('Found friends:', friends.length);
-
-        // Get notifications with enhanced query to include all notification types
-        const notifications = await Notification.find({
-            recipient: user._id,
-            type: {
-                $in: [
-                    'FRIEND_REQUEST_ACCEPTED',
-                    'FRIEND_REQUEST_REJECTED',
-                    'NEW_FRIEND_REQUEST',
-                    'FRIEND_REMOVED',
-                    'EVENT_CREATED',
-                    'EVENT_INVITATION_ACCEPTED',
-                    'EVENT_INVITATION_DECLINED',
-                    'EVENT_UPDATED',
-                    'EVENT_CANCELLED'
-                ]
-            }
-        })
-        .populate('sender', 'username email avatarUrl')
-        .populate('eventId', 'eventName eventDate location')
-        .sort({ createdAt: -1 })
-        .limit(10);
-
-        console.log('Found notifications:', notifications.length);
-
-        // Format notifications with consistent structure
-        const formattedNotifications: NotificationData[] = notifications.map(notification => ({
-            id: notification._id.toString(),
-            message: notification.message,
-            type: notification.type,
-            sender: notification.sender ? {
-                id: notification.sender._id.toString(),
-                username: notification.sender.username,
-                email: notification.sender.email,
-                avatarUrl: notification.sender.avatarUrl
-            } : null,
-            event: notification.eventId ? {
-                id: notification.eventId._id.toString(),
-                name: notification.eventId.eventName,
-                date: notification.eventId.eventDate.toISOString(),
-                location: notification.eventId.location
-            } : null,
-            createdAt: notification.createdAt.toISOString(),
-            read: notification.read,
-            status: notification.status
-        }));
-
-        console.log('Formatted notifications:', formattedNotifications);
 
         // Get user's events
         const currentDate = new Date();
@@ -190,15 +119,13 @@ async function handler(req: NextRequest) {
         const dashboardData: DashboardData = {
             upcomingEvents,
             pastEvents,
-            friends,
-            notifications: formattedNotifications
+            friends
         };
 
         console.log('Returning dashboard data with:', {
             upcomingEventsCount: upcomingEvents.length,
             pastEventsCount: pastEvents.length,
-            friendsCount: friends.length,
-            notificationsCount: formattedNotifications.length
+            friendsCount: friends.length
         });
 
         return NextResponse.json(dashboardData, { status: 200 });

@@ -92,7 +92,6 @@ export default function Component() {
     }
   };
 
-
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
@@ -135,26 +134,41 @@ export default function Component() {
     }
   };
 
-
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('/api/dashboard', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email })
-      });
-
+      const response = await fetch(`/api/notifications?userId=${email}`);
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const dashboardData: DashboardData = await response.json();
-      console.log('Received dashboard data:', dashboardData);
-      setNotifications(dashboardData.notifications);
+      const notificationData = await response.json();
+      console.log('Received notifications:', notificationData);
+      setNotifications(notificationData);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const updateNotification = async (notificationId: string, action: 'markAsRead' | 'delete') => {
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notificationIds: [notificationId],
+          action: action
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update notification');
+      }
+      
+      // Refresh notifications after update
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error updating notification:', error);
     }
   };
 

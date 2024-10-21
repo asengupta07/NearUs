@@ -80,21 +80,12 @@ export default function AddFriends() {
 
     const fetchNotifications = async () => {
         try {
-            const response = await fetch('/api/dashboard', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email })
-            });
-
+            const response = await fetch(`/api/notifications?userId=${email}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
-            const dashboardData: DashboardData = await response.json();
-            console.log('Received dashboard data:', dashboardData);
-            setNotifications(dashboardData.notifications);
+            const notificationData = await response.json();
+            setNotifications(notificationData);
         } catch (error) {
             console.error('Error fetching notifications:', error);
         }
@@ -102,7 +93,7 @@ export default function AddFriends() {
 
     const updateNotification = async (notificationId: string, action: 'markAsRead' | 'delete') => {
         try {
-            const response = await fetch('/api/update-notification', {
+            const response = await fetch('/api/notifications', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -110,9 +101,11 @@ export default function AddFriends() {
                     action: action
                 }),
             });
+
             if (!response.ok) {
                 throw new Error('Failed to update notification');
             }
+
             // Refresh notifications after update
             fetchNotifications();
         } catch (error) {
@@ -131,18 +124,36 @@ export default function AddFriends() {
                     action: 'accept'
                 }),
             });
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to accept friend request');
             }
+
             const data = await response.json();
             console.log('Friend request accepted:', data);
             setPendingRequests(prev => prev.filter(request => request.id !== requestId));
+
+            // Create new notification for accepted request
+            await fetch('/api/notifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: email,
+                    type: 'FRIEND_REQUEST_ACCEPTED',
+                    sender: requestId,
+                    message: 'Friend request accepted'
+                }),
+            });
+
             fetchFriends();
             fetchNotifications();
 
             // Update the notification related to this friend request
-            const relatedNotification = notifications.find(n => n.type === 'NEW_FRIEND_REQUEST' && n.sender.id === requestId);
+            const relatedNotification = notifications.find(n =>
+                n.type === 'NEW_FRIEND_REQUEST' &&
+                n.sender?.id === requestId
+            );
             if (relatedNotification) {
                 updateNotification(relatedNotification.id, 'markAsRead');
             }
@@ -163,13 +174,30 @@ export default function AddFriends() {
                     action: 'reject'
                 }),
             });
+
             if (!response.ok) {
                 throw new Error('Failed to reject friend request');
             }
+
             setPendingRequests(prev => prev.filter(request => request.id !== requestId));
 
+            // Create new notification for rejected request
+            await fetch('/api/notifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: email,
+                    type: 'FRIEND_REQUEST_REJECTED',
+                    sender: requestId,
+                    message: 'Friend request rejected'
+                }),
+            });
+
             // Update the notification related to this friend request
-            const relatedNotification = notifications.find(n => n.type === 'NEW_FRIEND_REQUEST' && n.sender.id === requestId);
+            const relatedNotification = notifications.find(n =>
+                n.type === 'NEW_FRIEND_REQUEST' &&
+                n.sender?.id === requestId
+            );
             if (relatedNotification) {
                 updateNotification(relatedNotification.id, 'delete');
             }
@@ -369,9 +397,20 @@ export default function AddFriends() {
             }
 
             setFriends(prev => prev.filter(friend => friend.id !== friendId));
-            toast.success('Friend removed successfully');
 
-            // Fetch updated notifications after friend removal
+            // Create new notification for removed friend
+            await fetch('/api/notifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: email,
+                    type: 'FRIEND_REMOVED',
+                    sender: friendId,
+                    message: 'Friend removed'
+                }),
+            });
+
+            toast.success('Friend removed successfully');
             fetchNotifications();
         } catch (error) {
             console.error('Error removing friend:', error);
@@ -411,7 +450,7 @@ export default function AddFriends() {
                                     placeholder="Search by username"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="flex-grow bg-gray-800 text-white border-gray-700"
+                                    className="flex-grow  bg-gray-800 text-white  border-gray-700"
                                 />
                                 <Button type="submit" disabled={isSearching} className="w-full sm:w-auto">
                                     {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}

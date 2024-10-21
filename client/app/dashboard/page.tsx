@@ -55,20 +55,21 @@ const scrollbarStyles = `
 
 export default function Component() {
   const { email } = useAuth();
-  const [data, setData] = useState<DashboardData>({
+  const [data, setData] = useState<Omit<DashboardData, 'notifications'>>({
     upcomingEvents: [],
     pastEvents: [],
     friends: [],
-    notifications: []
   });
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (email) {
-      console.log('Fetching dashboard data for email:', email);
+      console.error('Fetching dashboard data for email:', email);
       fetchDashboardData();
+      fetchNotifications();
     }
   }, [email]);
 
@@ -95,14 +96,43 @@ export default function Component() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const dashboardData: DashboardData = await response.json();
-      console.log('Received dashboard data:', dashboardData);
-      setData(dashboardData);
+      const dashboardData = await response.json();
+      console.error('Received dashboard data:', dashboardData);
+      setData({
+        upcomingEvents: dashboardData.upcomingEvents,
+        pastEvents: dashboardData.pastEvents,
+        friends: dashboardData.friends,
+      });
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       setError('Failed to load dashboard data. Please try again later.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    if (!email) return;
+    console.error("Start fetching notification");
+    try {
+      const response = await fetch(`/api/notifications?userId=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const notificationsData = await response.json();
+      console.error('Received notifications data:', notificationsData);
+      setNotifications(notificationsData);
+      console.error("Finished fetching and processing notifications");
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+      toast.error('Failed to load notifications. Please try again later.');
     }
   };
 
@@ -123,7 +153,7 @@ export default function Component() {
         throw new Error('Failed to update notifications');
       }
 
-      await fetchDashboardData();
+      await fetchNotifications();
       toast.success('Notifications marked as read');
     } catch (error) {
       console.error('Error updating notifications:', error);
@@ -134,12 +164,13 @@ export default function Component() {
   const deleteNotifications = async (notificationIds: string[]) => {
     try {
       const response = await fetch('/api/notifications', {
-        method: 'DELETE',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          notificationIds
+          notificationIds,
+          action: 'delete'
         })
       });
 
@@ -148,7 +179,7 @@ export default function Component() {
       }
 
       const result = await response.json();
-      await fetchDashboardData();
+      await fetchNotifications();
       toast.success(`Successfully deleted ${result.deletedCount} notification(s)`);
     } catch (error) {
       console.error('Error deleting notifications:', error);
@@ -209,7 +240,14 @@ export default function Component() {
       )}
     >
       <div className="mr-4 bg-gray-600 p-2 rounded-full mb-2 sm:mb-0">
-        {renderNotificationIcon(notification.type)}
+        {notification.sender && notification.sender.avatarUrl ? (
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={notification.sender.avatarUrl} alt={notification.sender.username} />
+            <AvatarFallback>{notification.sender.username.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        ) : (
+          renderNotificationIcon(notification.type)
+        )}
       </div>
       <div className="flex-grow mb-2 sm:mb-0">
         <p className="text-sm text-white font-medium">{notification.message}</p>
@@ -328,7 +366,7 @@ export default function Component() {
     )
   }
 
-  const { upcomingEvents, pastEvents, friends, notifications } = data;
+  const { upcomingEvents, pastEvents, friends } = data;
 
   return (
     <>
@@ -354,7 +392,7 @@ export default function Component() {
                     )}>
                       Welcome back, User!
                     </span>
-                
+
                   </h2>
                   <p className="text-gray-300 mb-6 text-base sm:text-lg">Ready to plan your next exciting meetup?</p>
                   <Link href="/create">
@@ -430,7 +468,7 @@ export default function Component() {
                   </CardContent>
                 </Card>
               }
-              
+
               {/* Upcoming Events Section */}
               <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg flex-grow">
                 <CardHeader className='px-6 pt-6 pb-2'>
@@ -534,7 +572,7 @@ export default function Component() {
                   )}
                 </CardContent>
               </Card>
-              
+
               {/* Past Events Section */}
               <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-none shadow-lg flex-grow">
                 <CardHeader>

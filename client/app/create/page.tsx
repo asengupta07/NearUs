@@ -20,10 +20,6 @@ import { toast, Toaster } from 'sonner'
 import LoadingState from '@/components/LoadingState/LoadingState'
 import { Notification } from '@/types'
 
-interface DashboardData {
-    notifications: Notification[]
-}
-
 interface Friend {
     id: string;
     username: string;
@@ -85,26 +81,17 @@ export default function CreateNewPlan() {
 
     const fetchNotifications = async () => {
         try {
-            const response = await fetch('/api/dashboard', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email })
-            });
-
+            const response = await fetch(`/api/notifications?userId=${encodeURIComponent(email || '')}`)
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`)
             }
-
-            const dashboardData: DashboardData = await response.json();
-            console.log('Received dashboard data:', dashboardData);
-            setNotifications(dashboardData.notifications);
+            const notificationsData: Notification[] = await response.json()
+            console.log('Received notifications:', notificationsData)
+            setNotifications(notificationsData)
         } catch (error) {
-            console.error('Error fetching notifications:', error);
+            console.error('Error fetching notifications:', error)
         }
-    };
-
+    }
 
     useEffect(() => {
         fetchNotifications()
