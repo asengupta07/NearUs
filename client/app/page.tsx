@@ -64,7 +64,7 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gray-950 text-white">
       <Navbar />
-      <div className="relative z-20 flex h-[calc(100vh-64px)] flex-col items-center justify-center px-4 text-center">
+      <div className="relative z-20 flex h-[calc(100vh-80px)] flex-col items-center justify-center px-4 text-center">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
