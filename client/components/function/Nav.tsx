@@ -108,7 +108,7 @@ export default function Navbar({
                                         {unreadNotificationsCount}
                                     </span>
                                 )}
-                                
+
                             </Button>
                         </motion.div>
                         <motion.div
@@ -138,13 +138,13 @@ export default function Navbar({
             <AnimatePresence>
                 {isMenuOpen && (
                     <motion.div
-                        className="fixed inset-0 z-40 bg-white dark:bg-gray-900 pt-[10vh]"
+                        className="fixed inset-0 z-40 bg-white dark:bg-gray-900 pt-10"
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     >
-                        <div className="container mx-auto px-6 py-8 space-y-6">
+                        <div className="container mx-auto px-4 py-8 space-y-6">
                             {navItems.map((item) => (
                                 <motion.div
                                     key={item.href}
@@ -154,7 +154,7 @@ export default function Navbar({
                                     <Link href={item.href} onClick={() => setIsMenuOpen(false)}>
                                         <Button variant="ghost" className="w-full justify-start hover:bg-transparent">
                                             <item.icon className="w-5 h-5 mr-2" />
-                                            {item.label}
+                                            &nbsp;&nbsp;{item.label}
                                         </Button>
                                     </Link>
                                 </motion.div>
@@ -168,15 +168,18 @@ export default function Navbar({
                                     onClick={handleNotificationClick}
                                     className="relative hover:bg-transparent"
                                 >
-                                    <Bell className="w-5 h-5" />
-                                    {unreadNotificationsCount > 0 && (
-                                        <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                                            {unreadNotificationsCount}
-                                        </span>
-                                    )}
-                                    <span>Notifications</span>
+                                    <span className="relative inline-flex">
+                                        <Bell className="w-5 h-5" />
+                                        {unreadNotificationsCount > 0 && (
+                                            <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                                                {unreadNotificationsCount}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span>&nbsp;&nbsp;&nbsp;&nbsp;Notifications</span>
                                 </Button>
                             </motion.div>
+
                             <motion.div
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
