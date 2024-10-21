@@ -64,10 +64,32 @@ export default function Component() {
   const [isLoading, setIsLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState<string | null>(null);
+
+  const fetchName = async () => {
+    if (!email) {
+      setError('No email available. Please log in.');
+      setIsLoading(false);
+      return;
+    }
+    const response = await fetch('/api/getName', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const nameData = await response.json();
+    setName(nameData.name);
+  };
 
   useEffect(() => {
     if (email) {
       console.error('Fetching dashboard data for email:', email);
+      fetchName();
       fetchDashboardData();
       fetchNotifications();
     }
@@ -267,16 +289,6 @@ export default function Component() {
         </p>
       </div>
       <div className="flex space-x-2 w-full sm:w-auto justify-end">
-        {!notification.read && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => markNotificationsAsRead([notification.id])}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            Mark as read
-          </Button>
-        )}
         <Button
           variant="ghost"
           size="sm"
@@ -390,7 +402,7 @@ export default function Component() {
                       "bg-gradient-to-r from-cyan-400 via-purple-500 to-yellow-500 bg-clip-text text-transparent",
                       "animate-text-gradient"
                     )}>
-                      Welcome back, User!
+                      Welcome back, {name? name?.charAt(0).toUpperCase() + name?.slice(1): "User"}!
                     </span>
 
                   </h2>
@@ -435,14 +447,6 @@ export default function Component() {
                     </CardTitle>
                     {notifications.length > 0 && (
                       <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => markNotificationsAsRead(notifications.filter(n => !n.read).map(n => n.id))}
-                          className="text-gray-400 hover:text-white transition-colors w-full sm:w-auto"
-                        >
-                          Mark all as read
-                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
