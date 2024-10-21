@@ -108,6 +108,7 @@ export default function Navbar({
                                         {unreadNotificationsCount}
                                     </span>
                                 )}
+                                
                             </Button>
                         </motion.div>
                         <motion.div
@@ -173,6 +174,7 @@ export default function Navbar({
                                             {unreadNotificationsCount}
                                         </span>
                                     )}
+                                    <span>Notifications</span>
                                 </Button>
                             </motion.div>
                             <motion.div
